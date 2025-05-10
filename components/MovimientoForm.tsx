@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Button, TextInput, Text, Card } from 'react-native-paper';
 import EscanerCodigoBarras from './EscanerCodigoBarras';
+import api from '../services/api';
 
 interface Producto {
   codigoBarras: string;
@@ -22,39 +23,88 @@ export default function MovimientoForm() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [accesorios, setAccesorios] = useState<Accesorio[]>([]);
   const [areaLlegada, setAreaLlegada] = useState('');
-  const [areaSalida, setAreaSalida] = useState('');
   const [observacion, setObservacion] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleCodigoEscaneado = (codigo: string) => {
-    // Aquí deberías hacer una llamada a la API para obtener los detalles del producto/accesorio
+  const buscarProducto = async (codigo: string) => {
+    try {
+      console.log('Buscando producto con código:', codigo);
+      const response = await api.get(`/gt/listarProducto/${codigo}`);
+      console.log('Respuesta del backend:', response.data);
+      return response.data.producto;
+    } catch (error: any) {
+      Alert.alert('Error', error.msg || 'No se pudo encontrar el producto');
+      return null;
+    }
+  };
+
+  const buscarAccesorio = async (codigo: string) => {
+    try {
+      const response = await api.get(`/gt/listarAccesorio/${codigo}`);
+      return response.data;
+    } catch (error: any) {
+      Alert.alert('Error', error.msg || 'No se pudo encontrar el accesorio');
+      return null;
+    }
+  };
+
+  const handleCodigoEscaneado = async (codigo: string) => {
+    console.log('Código escaneado:', codigo);
     if (tipoEscaner === 'producto') {
-      setProductos([...productos, {
-        codigoBarras: codigo,
-        nombreEquipo: 'Nombre del equipo', // Esto vendría de la API
-        capacidad: 'Capacidad', // Esto vendría de la API
-        color: 'Color', // Esto vendría de la API
-        codigoSerial: 'Serial' // Esto vendría de la API
-      }]);
+      const producto = await buscarProducto(codigo);
+      if (producto) {
+        // Verificar si el producto ya está en la lista
+        if (productos.some(p => p.codigoBarras === producto.codigoBarras)) {
+          Alert.alert('Error', 'Este producto ya ha sido agregado');
+          return;
+        }
+        setProductos([...productos, producto]);
+      }
     } else {
-      setAccesorios([...accesorios, {
-        codigoBarrasAccs: codigo,
-        nombreAccs: 'Nombre del accesorio' // Esto vendría de la API
-      }]);
+      const accesorio = await buscarAccesorio(codigo);
+      if (accesorio) {
+        // Verificar si el accesorio ya está en la lista
+        if (accesorios.some(a => a.codigoBarrasAccs === accesorio.codigoBarrasAccs)) {
+          Alert.alert('Error', 'Este accesorio ya ha sido agregado');
+          return;
+        }
+        setAccesorios([...accesorios, accesorio]);
+      }
     }
     setMostrarEscaner(false);
   };
 
   const handleSubmit = async () => {
-    // Aquí deberías hacer la llamada a la API para guardar el movimiento
-    const movimiento = {
-      productos,
-      accesorios,
-      areaLlegada,
-      areaSalida,
-      observacion,
-      fecha: new Date()
-    };
-    console.log('Movimiento a guardar:', movimiento);
+    if (!areaLlegada || !observacion) {
+      Alert.alert('Error', 'Por favor complete todos los campos requeridos');
+      return;
+    }
+
+    if (productos.length === 0 && accesorios.length === 0) {
+      Alert.alert('Error', 'Debe agregar al menos un producto o accesorio');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.post('/gt/registrarMovimiento', {
+        productos: productos.map(p => ({ codigoBarras: p.codigoBarras })),
+        accesorios: accesorios.map(a => ({ codigoBarrasAccs: a.codigoBarrasAccs })),
+        areaLlegada,
+        observacion
+      });
+
+      Alert.alert('Éxito', 'Movimiento registrado correctamente');
+      // Limpiar el formulario
+      setProductos([]);
+      setAccesorios([]);
+      setAreaLlegada('');
+      setObservacion('');
+    } catch (error: any) {
+      Alert.alert('Error', error.msg || 'Error al registrar el movimiento');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (mostrarEscaner) {
@@ -119,12 +169,6 @@ export default function MovimientoForm() {
         <Card.Title title="Detalles del Movimiento" />
         <Card.Content>
           <TextInput
-            label="Área de Salida"
-            value={areaSalida}
-            onChangeText={setAreaSalida}
-            style={styles.input}
-          />
-          <TextInput
             label="Área de Llegada"
             value={areaLlegada}
             onChangeText={setAreaLlegada}
@@ -142,6 +186,8 @@ export default function MovimientoForm() {
             mode="contained"
             onPress={handleSubmit}
             style={styles.button}
+            loading={loading}
+            disabled={loading}
           >
             Guardar Movimiento
           </Button>
