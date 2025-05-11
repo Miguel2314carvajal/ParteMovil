@@ -28,9 +28,7 @@ export default function MovimientoForm() {
 
   const buscarProducto = async (codigo: string) => {
     try {
-      console.log('Buscando producto con código:', codigo);
       const response = await api.get(`/gt/listarProducto/${codigo}`);
-      console.log('Respuesta del backend:', response.data);
       return response.data.producto;
     } catch (error: any) {
       Alert.alert('Error', error.msg || 'No se pudo encontrar el producto');

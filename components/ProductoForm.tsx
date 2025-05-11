@@ -69,11 +69,14 @@ export default function ProductoForm() {
     setCodigoBarrasDispositivo(null);
     setCodigoBarrasAccesorio(null);
     if (tipoProducto === 'dispositivos') {
-      productoService.obtenerMisProductos().then(productos => {
+      productoService.obtenerProductos().then(response => {
+        console.log('Productos obtenidos:', response);
+        // Accedemos al array de productos dentro de la respuesta
+        const productos = response.productos || [];
         setListaCodigosDispositivos(productos.map((p: { codigoBarras: string }) => p.codigoBarras));
       });
     } else if (tipoProducto === 'accesorios') {
-      accesorioService.obtenerMisAccesorios().then(accesorios => {
+      accesorioService.obtenerAccesorios().then(accesorios => {
         setListaCodigosAccesorios(accesorios.map((a: { codigoBarrasAccs: string }) => a.codigoBarrasAccs));
       });
     }

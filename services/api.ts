@@ -162,8 +162,10 @@ export const productoService = {
   obtenerProductos: async () => {
     try {
       const response = await api.get('/gt/listarProductos');
+      console.log('Respuesta de productos:', response.data); // Para debug
       return response.data;
     } catch (error: any) {
+      console.error('Error al obtener productos:', error); // Para debug
       throw error.response?.data || { mensaje: 'Error al obtener los productos' };
     }
   },
@@ -259,7 +261,7 @@ export const accesorioService = {
 
   obtenerAccesorios: async () => {
     try {
-      const response = await api.get('/listarAccesorios');
+      const response = await api.get('/gt/listarAccesorios');
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { mensaje: 'Error al obtener los accesorios' };
