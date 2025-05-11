@@ -116,6 +116,9 @@ export default function ProductoForm() {
             nombre: '',
             precio: '',
           });
+          // Actualizar la lista de accesorios después de crear uno nuevo
+          const accesorios = await accesorioService.obtenerAccesorios();
+          setListaCodigosAccesorios(accesorios.map((a: { codigoBarrasAccs: string }) => a.codigoBarrasAccs));
         } else {
           throw new Error('No se recibió la información del accesorio creado');
         }
@@ -152,6 +155,10 @@ export default function ProductoForm() {
           tipo: '',
           categoria: '',
         });
+        // Cambia el nombre aquí
+        const productosResponse = await productoService.obtenerProductos();
+        const productos = productosResponse.productos || [];
+        setListaCodigosDispositivos(productos.map((p: { codigoBarras: string }) => p.codigoBarras));
       }
     } catch (error: any) {
       console.error('Error completo:', error);
