@@ -17,6 +17,7 @@ import CodigoBarras from './CodigoBarras';
 import CategoriaSelector from './CategoriaSelector';
 import CapacidadSelector from './CapacidadSelector';
 import TipoSelector from './TipoSelector';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface ProductFormData {
   codigoUnico: string;
@@ -47,6 +48,9 @@ export default function ProductoForm() {
   const [codigoBarrasAccesorio, setCodigoBarrasAccesorio] = useState<string | null>(null);
   const [listaCodigosDispositivos, setListaCodigosDispositivos] = useState<string[]>([]);
   const [listaCodigosAccesorios, setListaCodigosAccesorios] = useState<string[]>([]);
+  const [busqueda, setBusqueda] = useState('');
+  const [resultadoBusqueda, setResultadoBusqueda] = useState<any | null>(null);
+  const [buscando, setBuscando] = useState(false);
 
   const [formData, setFormData] = useState<ProductFormData>({
     codigoUnico: '',
@@ -82,6 +86,29 @@ export default function ProductoForm() {
     }
   }, [tipoProducto]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      setMostrarFormulario(false);
+      setCodigoBarrasDispositivo(null);
+      setCodigoBarrasAccesorio(null);
+      setFormData({
+        codigoUnico: '',
+        codigoSerial: '',
+        nombreEquipo: '',
+        color: '',
+        capacidad: '',
+        precio: '',
+        tipo: '',
+        categoria: '',
+      });
+      setAccesorioData({
+        codigoUnico: '',
+        nombre: '',
+        precio: '',
+      });
+    }, [])
+  );
+
   const handleTipoSelect = (tipo: 'dispositivos' | 'accesorios') => {
     setTipoProducto(tipo);
     setMostrarFormulario(false);
@@ -104,23 +131,38 @@ export default function ProductoForm() {
           disponibilidadAccs: "Disponible"
         };
 
-        console.log('Enviando datos de accesorio:', accesorioDataToSend);
-        const response = await accesorioService.crearAccesorio(accesorioDataToSend);
-        console.log('Respuesta del servidor:', response);
-        
-        if (response.accesorio) {
-          setCodigoBarrasAccesorio(response.accesorio.codigoBarrasAccs);
-          setMostrarFormulario(false);
-          setAccesorioData({
-            codigoUnico: '',
-            nombre: '',
-            precio: '',
-          });
-          // Actualizar la lista de accesorios después de crear uno nuevo
-          const accesorios = await accesorioService.obtenerAccesorios();
-          setListaCodigosAccesorios(accesorios.map((a: { codigoBarrasAccs: string }) => a.codigoBarrasAccs));
+        if (codigoBarrasAccesorio) {
+          // Actualizar
+          await accesorioService.actualizarAccesorio(codigoBarrasAccesorio, accesorioDataToSend);
+          Alert.alert('Éxito', 'Accesorio actualizado correctamente', [
+            {
+              text: 'OK',
+              onPress: () => {
+                setMostrarFormulario(false);
+                setCodigoBarrasAccesorio(null);
+                setAccesorioData({
+                  codigoUnico: '',
+                  nombre: '',
+                  precio: '',
+                });
+              }
+            }
+          ]);
         } else {
-          throw new Error('No se recibió la información del accesorio creado');
+          // Crear nuevo
+          const response = await accesorioService.crearAccesorio(accesorioDataToSend);
+          if (response.accesorio) {
+            setCodigoBarrasAccesorio(response.accesorio.codigoBarrasAccs);
+            setMostrarFormulario(false);
+            setAccesorioData({
+              codigoUnico: '',
+              nombre: '',
+              precio: '',
+            });
+            // Actualizar la lista de accesorios después de crear uno nuevo
+            const accesorios = await accesorioService.obtenerAccesorios();
+            setListaCodigosAccesorios(accesorios.map((a: { codigoBarrasAccs: string }) => a.codigoBarrasAccs));
+          }
         }
       } catch (error: any) {
         console.error('Error completo:', error);
@@ -141,28 +183,189 @@ export default function ProductoForm() {
         ...formData,
         precio: parseFloat(formData.precio),
       };
-      const response = await productoService.crearProducto(productoData);
-      if (response.producto) {
-        setCodigoBarrasDispositivo(response.producto.codigoBarras);
-        setMostrarFormulario(false);
-        setFormData({
-          codigoUnico: '',
-          codigoSerial: '',
-          nombreEquipo: '',
-          color: '',
-          capacidad: '',
-          precio: '',
-          tipo: '',
-          categoria: '',
-        });
-        // Cambia el nombre aquí
-        const productosResponse = await productoService.obtenerProductos();
-        const productos = productosResponse.productos || [];
-        setListaCodigosDispositivos(productos.map((p: { codigoBarras: string }) => p.codigoBarras));
+
+      if (codigoBarrasDispositivo) {
+        // Actualizar
+        await productoService.actualizarProducto(codigoBarrasDispositivo, productoData);
+        Alert.alert('Éxito', 'Producto actualizado correctamente', [
+          {
+            text: 'OK',
+            onPress: () => {
+              setMostrarFormulario(false);
+              setCodigoBarrasDispositivo(null);
+              setFormData({
+                codigoUnico: '',
+                codigoSerial: '',
+                nombreEquipo: '',
+                color: '',
+                capacidad: '',
+                precio: '',
+                tipo: '',
+                categoria: '',
+              });
+            }
+          }
+        ]);
+      } else {
+        // Crear nuevo
+        const response = await productoService.crearProducto(productoData);
+        if (response.producto) {
+          setCodigoBarrasDispositivo(response.producto.codigoBarras);
+          setMostrarFormulario(false);
+          setFormData({
+            codigoUnico: '',
+            codigoSerial: '',
+            nombreEquipo: '',
+            color: '',
+            capacidad: '',
+            precio: '',
+            tipo: '',
+            categoria: '',
+          });
+          // Cambia el nombre aquí
+          const productosResponse = await productoService.obtenerProductos();
+          const productos = productosResponse.productos || [];
+          setListaCodigosDispositivos(productos.map((p: { codigoBarras: string }) => p.codigoBarras));
+        }
       }
     } catch (error: any) {
       console.error('Error completo:', error);
       Alert.alert('Error', error.msg || 'No se pudo registrar el producto');
+    }
+  };
+
+  const handleBuscar = async () => {
+    if (!busqueda.trim()) {
+      setResultadoBusqueda(null);
+      return;
+    }
+    setBuscando(true);
+    try {
+      if (tipoProducto === 'dispositivos') {
+        const res = await productoService.obtenerProductoPorCodigo(busqueda.trim());
+        if (res.producto) {
+          setResultadoBusqueda(res.producto);
+        } else {
+          setResultadoBusqueda('no-encontrado');
+        }
+      } else {
+        const res = await accesorioService.obtenerAccesorioPorCodigo(busqueda.trim());
+        if (res.accesorio) {
+          setResultadoBusqueda(res.accesorio);
+        } else {
+          setResultadoBusqueda('no-encontrado');
+        }
+      }
+    } catch (error) {
+      console.error('Error en la búsqueda:', error);
+      setResultadoBusqueda('no-encontrado');
+    }
+    setBuscando(false);
+  };
+
+  const handleEditar = async (codigoBarras: string) => {
+    try {
+      console.log('Buscando accesorio con código:', codigoBarras);
+      if (tipoProducto === 'dispositivos') {
+        const res = await productoService.obtenerProductoPorCodigo(codigoBarras);
+        console.log('Datos del producto recibidos:', res.producto);
+        if (res.producto) {
+          setFormData({
+            codigoUnico: res.producto.codigoUnico || '',
+            codigoSerial: res.producto.codigoSerial || '',
+            nombreEquipo: res.producto.nombreEquipo || '',
+            color: res.producto.color || '',
+            capacidad: res.producto.capacidad || '',
+            precio: res.producto.precio ? res.producto.precio.toString() : '',
+            tipo: res.producto.tipo || '',
+            categoria: res.producto.categoria || res.producto.categoriaNombre || '',
+          });
+          setCodigoBarrasDispositivo(codigoBarras);
+          setMostrarFormulario(true);
+        }
+      } else {
+        const res = await accesorioService.obtenerAccesorioPorCodigo(codigoBarras);
+        if (res.accesorio) {
+          setAccesorioData({
+            codigoUnico: res.accesorio.codigoUnicoAccs || '',
+            nombre: res.accesorio.nombreAccs || '',
+            precio: res.accesorio.precioAccs ? res.accesorio.precioAccs.toString() : '',
+          });
+          setCodigoBarrasAccesorio(codigoBarras);
+          setMostrarFormulario(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error al obtener datos para editar:', error);
+      Alert.alert('Error', 'No se pudieron cargar los datos para editar');
+    }
+  };
+
+  const handleVer = async (codigoBarras: string) => {
+    try {
+      console.log('Buscando accesorio con código:', codigoBarras);
+      if (tipoProducto === 'dispositivos') {
+        const res = await productoService.obtenerProductoPorCodigo(codigoBarras);
+        if (res.producto) {
+          // Extraer categoría (puede ser array)
+          let categoria = '';
+          if (Array.isArray(res.producto.categoriaNombre) && res.producto.categoriaNombre.length > 0) {
+            categoria = res.producto.categoriaNombre[0].nombreCategoria || '';
+          } else if (typeof res.producto.categoriaNombre === 'string') {
+            categoria = res.producto.categoriaNombre;
+          } else if (res.producto.categoria && typeof res.producto.categoria === 'string') {
+            categoria = res.producto.categoria;
+          }
+
+          // Extraer responsable (puede ser array)
+          let responsable = '';
+          if (Array.isArray(res.producto.responsable) && res.producto.responsable.length > 0) {
+            responsable = res.producto.responsable[0].nombre || '';
+          } else if (typeof res.producto.responsable === 'string') {
+            responsable = res.producto.responsable;
+          }
+
+          Alert.alert(
+            'Detalle del producto',
+            `Código de Barras: ${res.producto.codigoBarras}\n` +
+            `Código Único: ${res.producto.codigoUnico}\n` +
+            `Código Serial: ${res.producto.codigoSerial}\n` +
+            `Nombre: ${res.producto.nombreEquipo}\n` +
+            `Color: ${res.producto.color}\n` +
+            `Capacidad: ${res.producto.capacidad}\n` +
+            `Precio: ${res.producto.precio}\n` +
+            `Tipo: ${res.producto.tipo}\n` +
+            `Categoría: ${categoria}\n` +
+            `Responsable: ${responsable}\n` +
+            `Locación: ${res.producto.locacion || ''}\n` +
+            `Fecha Ingreso: ${res.producto.fechaIngreso ? new Date(res.producto.fechaIngreso).toLocaleString() : ''}`
+          );
+        }
+      } else {
+        const res = await accesorioService.obtenerAccesorioPorCodigo(codigoBarras);
+        if (res.accesorio) {
+          // Extraer responsable (puede ser array)
+          let responsable = '';
+          if (Array.isArray(res.accesorio.responsableAccs) && res.accesorio.responsableAccs.length > 0) {
+            responsable = res.accesorio.responsableAccs[0].nombre || '';
+          } else if (typeof res.accesorio.responsableAccs === 'string') {
+            responsable = res.accesorio.responsableAccs;
+          }
+
+          Alert.alert(
+            'Detalle del accesorio',
+            `Código de Barras: ${res.accesorio.codigoBarrasAccs}\n` +
+            `Código Único: ${res.accesorio.codigoUnicoAccs}\n` +
+            `Nombre: ${res.accesorio.nombreAccs}\n` +
+            `Precio: ${res.accesorio.precioAccs}\n` +
+            `Disponibilidad: ${res.accesorio.disponibilidadAccs}\n` +
+            `Locación: ${res.accesorio.locacionAccs}\n` +
+            `Responsable: ${responsable}\n`
+          );
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron cargar los datos para visualizar');
     }
   };
 
@@ -211,10 +414,11 @@ export default function ProductoForm() {
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Categoría *</Text>
         <CategoriaSelector
-          value={formData.categoria}
+          value={formData.categoria ? formData.categoria.toString() : ''}
           onChange={(value) => {
-            // Limpiar la capacidad al cambiar la categoría
-            setFormData({ ...formData, categoria: value, capacidad: '' });
+            if (value) {
+              setFormData({ ...formData, categoria: value, capacidad: '' });
+            }
           }}
         />
       </View>
@@ -286,7 +490,6 @@ export default function ProductoForm() {
 
   return (
     <ScrollView style={styles.container}>
-
       <View style={styles.form}>
         <TipoProductoSelector
           tipoSeleccionado={tipoProducto}
@@ -296,42 +499,113 @@ export default function ProductoForm() {
           }}
         />
 
-        {/* Título general solo si hay códigos y no se está mostrando el formulario */}
-        {(!mostrarFormulario && ((tipoProducto === 'dispositivos' && listaCodigosDispositivos.length > 0) || (tipoProducto === 'accesorios' && listaCodigosAccesorios.length > 0))) ? (
-          <Text style={[styles.codigosListaTitle, { fontSize: 20, marginBottom: 10 }]}>Códigos de Barras Generados</Text>
-        ) : null}
-
-        {/* Lista de códigos de barras solo si no se está mostrando el formulario */}
-        {!mostrarFormulario && tipoProducto === 'dispositivos' && listaCodigosDispositivos.length > 0 && (
-          <View>
-            {listaCodigosDispositivos.map((p: string) => (
-              <View key={p} style={styles.codigosListaContainer}>
-                <CodigoBarras codigo={p} />
-              </View>
-            ))}
-          </View>
-        )}
-        {!mostrarFormulario && tipoProducto === 'accesorios' && listaCodigosAccesorios.length > 0 && (
-          <View>
-            {listaCodigosAccesorios.map((a: string) => (
-              <View key={a} style={styles.codigosListaContainer}>
-                <CodigoBarras codigo={a} />
-              </View>
-            ))}
-          </View>
-        )}
-
         {!mostrarFormulario && (
-          <TouchableOpacity style={styles.submitButton} onPress={() => setMostrarFormulario(true)}>
-            <Text style={styles.submitButtonText}>Agregar</Text>
-          </TouchableOpacity>
+          <>
+            {/* Título general solo si hay códigos y no se está mostrando el formulario */}
+            {((tipoProducto === 'dispositivos' && listaCodigosDispositivos.length > 0) || (tipoProducto === 'accesorios' && listaCodigosAccesorios.length > 0)) ? (
+              <Text style={[styles.codigosListaTitle, { fontSize: 20, marginBottom: 10 }]}>Códigos de Barras Generados</Text>
+            ) : null}
+
+            {tipoProducto === 'dispositivos' && listaCodigosDispositivos.length > 0 && (
+              <View>
+                {listaCodigosDispositivos.map((p: string) => (
+                  <View key={p} style={styles.codigosListaContainer}>
+                    <View style={styles.codigoBarrasRow}>
+                      <View style={styles.codigoBarrasContainer}>
+                        <CodigoBarras codigo={p} />
+                      </View>
+                      <View style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <TouchableOpacity style={styles.editButton} onPress={() => handleEditar(p)}>
+                          <MaterialIcons name="edit" size={24} color="#007AFF" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.editButton} onPress={() => handleVer(p)}>
+                          <MaterialIcons name="visibility" size={24} color="#007AFF" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+            {tipoProducto === 'accesorios' && listaCodigosAccesorios.length > 0 && (
+              <View>
+                {listaCodigosAccesorios.map((a: string) => (
+                  <View key={a} style={styles.codigosListaContainer}>
+                    <View style={styles.codigoBarrasRow}>
+                      <View style={styles.codigoBarrasContainer}>
+                        <CodigoBarras codigo={a} />
+                      </View>
+                      <View style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <TouchableOpacity style={styles.editButton} onPress={() => handleEditar(a)}>
+                          <MaterialIcons name="edit" size={24} color="#007AFF" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.editButton} onPress={() => handleVer(a)}>
+                          <MaterialIcons name="visibility" size={24} color="#007AFF" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <TouchableOpacity style={styles.submitButton} onPress={() => {
+              setMostrarFormulario(true);
+              setFormData({
+                codigoUnico: '',
+                codigoSerial: '',
+                nombreEquipo: '',
+                color: '',
+                capacidad: '',
+                precio: '',
+                tipo: '',
+                categoria: '',
+              });
+              setCodigoBarrasDispositivo(null);
+              setCodigoBarrasAccesorio(null);
+              setAccesorioData({
+                codigoUnico: '',
+                nombre: '',
+                precio: '',
+              });
+            }}>
+              <Text style={styles.submitButtonText}>Agregar</Text>
+            </TouchableOpacity>
+          </>
         )}
 
         {mostrarFormulario && (
           <>
             {tipoProducto === 'dispositivos' ? renderFormularioDispositivos() : renderFormularioAccesorios()}
             <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-              <Text style={styles.submitButtonText}>Registrar Producto</Text>
+              <Text style={styles.submitButtonText}>
+                {codigoBarrasDispositivo || codigoBarrasAccesorio ? 'Actualizar' : 'Registrar Producto'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.submitButton, { backgroundColor: '#aaa', marginTop: 10 }]}
+              onPress={() => {
+                setMostrarFormulario(false);
+                setCodigoBarrasDispositivo(null);
+                setCodigoBarrasAccesorio(null);
+                setFormData({
+                  codigoUnico: '',
+                  codigoSerial: '',
+                  nombreEquipo: '',
+                  color: '',
+                  capacidad: '',
+                  precio: '',
+                  tipo: '',
+                  categoria: '',
+                });
+                setAccesorioData({
+                  codigoUnico: '',
+                  nombre: '',
+                  precio: '',
+                });
+              }}
+            >
+              <Text style={styles.submitButtonText}>Cancelar</Text>
             </TouchableOpacity>
           </>
         )}
@@ -415,5 +689,17 @@ const styles = StyleSheet.create({
   },
   codigoBarrasWrapper: {
     flex: 1,
+  },
+  codigoBarrasRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  codigoBarrasContainer: {
+    flex: 1,
+  },
+  editButton: {
+    padding: 8,
+    marginLeft: 8,
   },
 }); 

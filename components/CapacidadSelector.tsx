@@ -11,13 +11,14 @@ interface CapacidadSelectorProps {
 export default function CapacidadSelector({ value, onChange, categoria }: CapacidadSelectorProps) {
   let opciones: string[] = [];
 
-  if (categoria.toLowerCase() === 'macbook') {
+  const categoriaStr = String(categoria || '');
+  if (categoriaStr.toLowerCase() === 'macbook') {
     opciones = [
       '512GB y 16GB RAM',
       '512GB y 8GB RAM',
       '1TB y 32GB RAM'
     ];
-  } else if (categoria.toLowerCase() === 'apple watch') {
+  } else if (categoriaStr.toLowerCase() === 'apple watch') {
     opciones = [
       '32GB',
       '64GB'

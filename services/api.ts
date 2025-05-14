@@ -181,7 +181,7 @@ export const productoService = {
 
   actualizarProducto: async (codigoBarras: string, productoData: any) => {
     try {
-      const response = await api.put(`/actualizarProducto/${codigoBarras}`, productoData);
+      const response = await api.put(`/gt/actualizarProducto/${codigoBarras}`, productoData);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { mensaje: 'Error al actualizar el producto' };
@@ -270,7 +270,7 @@ export const accesorioService = {
 
   obtenerAccesorioPorCodigo: async (codigoBarras: string) => {
     try {
-      const response = await api.get(`/listarAccesorio/${codigoBarras}`);
+      const response = await api.get(`/gt/listarAccesorio/${codigoBarras}`);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { mensaje: 'Error al obtener el accesorio' };
@@ -279,7 +279,7 @@ export const accesorioService = {
 
   actualizarAccesorio: async (codigoBarras: string, accesorioData: any) => {
     try {
-      const response = await api.put(`/actualizarAccesorio/${codigoBarras}`, accesorioData);
+      const response = await api.put(`/gt/actualizarAccesorio/${codigoBarras}`, accesorioData);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { mensaje: 'Error al actualizar el accesorio' };
