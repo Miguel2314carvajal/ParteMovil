@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Button, TextInput, Text, Card } from 'react-native-paper';
 import EscanerCodigoBarras from './EscanerCodigoBarras';
 import api from '../services/api';
+import { MaterialIcons } from '@expo/vector-icons';
 
 interface Producto {
   codigoBarras: string;
@@ -39,7 +40,7 @@ export default function MovimientoForm() {
   const buscarAccesorio = async (codigo: string) => {
     try {
       const response = await api.get(`/gt/listarAccesorio/${codigo}`);
-      return response.data;
+      return response.data.accesorio;
     } catch (error: any) {
       Alert.alert('Error', error.msg || 'No se pudo encontrar el accesorio');
       return null;
@@ -105,6 +106,14 @@ export default function MovimientoForm() {
     }
   };
 
+  const borrarProducto = (idx: number) => {
+    setProductos(productos.filter((_, i) => i !== idx));
+  };
+
+  const borrarAccesorio = (idx: number) => {
+    setAccesorios(accesorios.filter((_, i) => i !== idx));
+  };
+
   if (mostrarEscaner) {
     return (
       <EscanerCodigoBarras
@@ -120,12 +129,17 @@ export default function MovimientoForm() {
         <Card.Title title="Productos" />
         <Card.Content>
           {productos.map((producto, index) => (
-            <View key={index} style={styles.item}>
-              <Text>Código: {producto.codigoBarras}</Text>
-              <Text>Nombre: {producto.nombreEquipo}</Text>
-              <Text>Capacidad: {producto.capacidad}</Text>
-              <Text>Color: {producto.color}</Text>
-              <Text>Serial: {producto.codigoSerial}</Text>
+            <View key={index} style={[styles.item, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
+              <View>
+                <Text>Código: {producto.codigoBarras}</Text>
+                <Text>Nombre: {producto.nombreEquipo}</Text>
+                <Text>Capacidad: {producto.capacidad}</Text>
+                <Text>Color: {producto.color}</Text>
+                <Text>Serial: {producto.codigoSerial}</Text>
+              </View>
+              <TouchableOpacity onPress={() => borrarProducto(index)}>
+                <MaterialIcons name="delete" size={24} color="red" />
+              </TouchableOpacity>
             </View>
           ))}
           <Button
@@ -145,9 +159,14 @@ export default function MovimientoForm() {
         <Card.Title title="Accesorios" />
         <Card.Content>
           {accesorios.map((accesorio, index) => (
-            <View key={index} style={styles.item}>
-              <Text>Código: {accesorio.codigoBarrasAccs}</Text>
-              <Text>Nombre: {accesorio.nombreAccs}</Text>
+            <View key={index} style={[styles.item, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
+              <View>
+                <Text>Código: {accesorio.codigoBarrasAccs}</Text>
+                <Text>Nombre: {accesorio.nombreAccs}</Text>
+              </View>
+              <TouchableOpacity onPress={() => borrarAccesorio(index)}>
+                <MaterialIcons name="delete" size={24} color="red" />
+              </TouchableOpacity>
             </View>
           ))}
           <Button
