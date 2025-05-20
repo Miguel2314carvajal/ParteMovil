@@ -1,48 +1,61 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-// TODO: Importar la API service para accesorios
-// import { accesorioService } from '../../services/api';
+import api from '../../../services/api'; // Ajustar la ruta si es diferente
 
-// TODO: Definir la interfaz del accesorio según el endpoint /accesoriosBodeguero
+// TODO: Definir la interfaz del accesorio según el endpoint /accesoriosBodeguero si es diferente
 interface AccesorioBodeguero {
   _id: string;
+  __v: number;
+  categoriaNombre: any[]; // Puedes refinar esto si necesitas acceder a los detalles de la categoría
+  codigoBarrasAccs: string; // Este es el campo que buscamos
   codigoModeloAccs: string;
+  disponibilidadAccs: string;
+  fechaIngreso: string; // O Date si la parseas
+  locacionAccs: string;
   nombreAccs: string;
-  cantidad: number;
-  codigosBarras: string[]; // Asumiendo que el endpoint devuelve los códigos de barras directamente
-  // Otros campos si son necesarios
+  precioAccs: number; // O string, dependiendo de la API
+  responsableAccs: any[]; // Puedes refinar esto también
 }
 
-// TODO: Implementar la llamada al endpoint /accesoriosBodeguero con filtros si es necesario
-const obtenerMisAccesorios = async (filtros: any): Promise<AccesorioBodeguero[]> => {
+// Implementación real para obtener accesorios del bodeguero
+const obtenerMisAccesorios = async (filtros: { nombre: string }): Promise<AccesorioBodeguero[]> => {
+  console.log('Llamando a /gt/accesoriosBodeguero con filtros:', filtros);
+  try {
+    // TODO: Asegurarse de que el endpoint /gt/accesoriosBodeguero soporte filtrado por nombre
+    // Si soporta, pasar el filtro como parámetro: `/gt/accesoriosBodeguero?nombre=${filtros.nombre}`
+    const response = await api.get('/gt/accesoriosBodeguero'); // Llamada a la API
+     console.log('Respuesta completa de /gt/accesoriosBodeguero:', response.data); // Log para depuración
+    
+    // TODO: Verificar la estructura exacta de la respuesta y ajustarla si es necesario
+    // Asumiendo que response.data contiene directamente el array de accesorios
+     if (Array.isArray(response.data)) {
+         // Simular filtrado por nombre en el frontend si el backend no lo soporta
+        const filteredData = response.data.filter((a: any) => 
+           a.nombreAccs.toLowerCase().includes(filtros.nombre.toLowerCase())
+        );
+        return filteredData as AccesorioBodeguero[];
+    } else {
+        console.error('La respuesta de /gt/accesoriosBodeguero no es un array:', response.data);
+        return [];
+    }
+
+  } catch (error: any) {
+    console.error('Error cargando mis accesorios:', error);
+    // TODO: Manejar el error de forma más amigable
+    throw error;
+  }
+  
+  /*
+  // --- Código mockeado anterior (comentado) ---
   console.log('Simulando llamada a /accesoriosBodeguero con filtros:', filtros);
-  // **Aquí iría la llamada a la API**
-  // Ejemplo: const data = await accesorioService.obtenerAccesoriosBodeguero(filtros);
-  // return data;
-
-  // Datos mockeados para pruebas (reemplazar con la llamada real)
   const mockAccesorios: AccesorioBodeguero[] = [
-    {
-      _id: 'acc1',
-      codigoModeloAccs: 'EST11',
-      nombreAccs: 'Estuche iPhone 11',
-      cantidad: 2,
-      codigosBarras: ['CBA001', 'CBA002'],
-    },
-    {
-      _id: 'acc2',
-      codigoModeloAccs: 'ACCS1234',
-      nombreAccs: 'Cargador rápido 20w',
-      cantidad: 1,
-      codigosBarras: ['CBA003'],
-    },
-  ];
-
-   // Simular filtrado básico por nombre (ajustar según los filtros reales)
+// ... existing code ...
   return mockAccesorios.filter(a => 
     a.nombreAccs.toLowerCase().includes(filtros.nombre?.toLowerCase() || '')
   );
+  // --- Fin código mockeado anterior ---
+  */
 };
 
 export default function MisAccesoriosScreen() {
@@ -53,40 +66,54 @@ export default function MisAccesoriosScreen() {
   const [modalTitle, setModalTitle] = useState('');
   const [filtros, setFiltros] = useState({ nombre: '' }); // Filtro básico de nombre
 
-  const cargarMisAccesorios = async () => {
-    setLoading(true);
-    try {
-      const data = await obtenerMisAccesorios(filtros);
-      setAccesorios(data);
-    } catch (error) {
-      console.error('Error cargando mis accesorios:', error);
-      // TODO: Mostrar un mensaje de error al usuario
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Cargar datos al montar el componente y cuando cambien los filtros
   useEffect(() => {
-    cargarMisAccesorios();
-  }, [filtros]); // Recargar al cambiar filtros
+     const fetchMisAccesorios = async () => {
+      setLoading(true);
+      try {
+        const data = await obtenerMisAccesorios(filtros);
+        setAccesorios(data);
+      } catch (error: any) {
+         Alert.alert('Error', error.msg || 'Error al cargar mis accesorios');
+         setAccesorios([]); // Limpiar lista en caso de error
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMisAccesorios();
+  }, [filtros]); // Dependencia en filtros para recargar al cambiar nombre
 
-  const verCodigosBarras = (codigos: string[], titulo: string) => {
+  // Función para mostrar el modal de códigos de barras
+  const handleVerCodigosBarras = useCallback((codigos: string[], titulo: string) => {
+    console.log('Abriendo modal para códigos:', codigos);
     setCodigosBarras(codigos);
     setModalTitle(titulo);
     setModalVisible(true);
-  };
+  }, []);
 
-  const renderAccesorio = ({ item }: { item: AccesorioBodeguero }) => (
-    <View style={styles.row}>
-      <Text style={styles.cell}>Accesorio</Text>
-      <Text style={styles.cell}>{item.codigoModeloAccs}</Text>
-      <Text style={styles.cell}>{item.nombreAccs}</Text>
-      <Text style={styles.cell}>{item.cantidad}</Text>
-      <TouchableOpacity onPress={() => verCodigosBarras(item.codigosBarras, `Códigos de Barras de ${item.nombreAccs}`)} style={styles.codesIcon}>
-        <MaterialIcons name="visibility" size={20} color="#007AFF" />
-      </TouchableOpacity>
-    </View>
-  );
+  const renderAccesorio = ({ item }: { item: AccesorioBodeguero }) => {
+    // Acceso más directo al campo codigosBarrasAccs
+    const codigoDeBarras = item.codigoBarrasAccs;
+    console.log('Valor de codigoDeBarras en renderAccesorio (después de leer item.codigoBarrasAccs):', codigoDeBarras);
+
+    // Construir el array de códigos de barras a pasar. Asegurarse de que sea un array y que el valor no sea undefined/null.
+    // Usamos la variable local codigoDeBarras
+    const codigosParaModal = codigoDeBarras ? [codigoDeBarras] : ['No hay código de barras disponible'];
+
+    return (
+      <View style={styles.row}>
+        <Text style={styles.cell}>Accesorio</Text>
+        <Text style={styles.cell}>{item.codigoModeloAccs}</Text>
+        <Text style={styles.cell}>{item.nombreAccs}</Text>
+        {/* Mostrar 1 como cantidad para cada accesorio individual */}
+        <Text style={styles.cell}>1</Text>
+        {/* Llamar directamente a la función de manejo del clic */}
+        <TouchableOpacity onPress={() => handleVerCodigosBarras(codigosParaModal, `Código de Barras de ${item.nombreAccs}`)} style={styles.codesIcon}>
+          <MaterialIcons name="visibility" size={20} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>

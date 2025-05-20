@@ -328,7 +328,7 @@ export default function ProductoForm() {
           }
 
           Alert.alert(
-            'Detalle del producto',
+            'Detalle del dispositivo',
             `Código de Barras: ${res.producto.codigoBarras}\n` +
             `Código de Modelo: ${res.producto.codigoModelo}\n` +
             `Código Serial: ${res.producto.codigoSerial}\n` +
@@ -589,7 +589,7 @@ export default function ProductoForm() {
             {tipoProducto === 'dispositivos' ? renderFormularioDispositivos() : renderFormularioAccesorios()}
             <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
               <Text style={styles.submitButtonText}>
-                {codigoBarrasDispositivo || codigoBarrasAccesorio ? 'Actualizar' : 'Registrar Producto'}
+                {codigoBarrasDispositivo || codigoBarrasAccesorio ? 'Actualizar' : 'Registrar'}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity

@@ -61,17 +61,17 @@ export default function HomeScreen() {
       <View style={styles.menuGrid}>
         <MenuCard
           icon="add-box"
-          title="Registrar producto"
+          title="Registrar dispositivos y accesorios"
           route="/(tabs)/nuevo-producto"
         />
         <MenuCard
           icon="search"
-          title="Ver productos"
+          title="Stock Disponible"
           route="/(tabs)/productos"
         />
         <MenuCard
           icon="sync"
-          title="Movimientos de stock"
+          title="Realizar Movimientos"
           route="/(tabs)/nuevo-movimiento"
         />
         <MenuCard

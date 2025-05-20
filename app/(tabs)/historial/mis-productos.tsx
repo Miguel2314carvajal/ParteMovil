@@ -1,51 +1,59 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-// TODO: Importar la API service para productos
-// import { productService } from '../../services/api';
+import api from '../../../services/api'; // Ajustar la ruta si es diferente
 
-// TODO: Definir la interfaz del producto según el endpoint /productosBodeguero
+// TODO: Definir la interfaz del producto según el endpoint /productosBodeguero si es diferente
 interface ProductoBodeguero {
   _id: string;
   tipo: string;
   codigoModelo: string;
   nombreEquipo: string;
-  cantidad: number;
-  codigoB: string[]; // Asumiendo que el endpoint devuelve los códigos de barras directamente
-  // Otros campos si son necesarios
+  // La cantidad parece no venir directamente, cada item es una instancia singular
+  codigoBarras: string; // Corregido: es una string, no un array
+  color?: string;
+  capacidad?: string;
+  // Otros campos si son necesarios (fechaIngreso, locacion, estado, etc.)
 }
 
-// TODO: Implementar la llamada al endpoint /productosBodeguero con filtros si es necesario
-const obtenerMisProductos = async (filtros: any): Promise<ProductoBodeguero[]> => {
+// Implementación real para obtener productos del bodeguero
+const obtenerMisProductos = async (filtros: { nombre: string }): Promise<ProductoBodeguero[]> => {
+  console.log('Llamando a /gt/productosBodeguero con filtros:', filtros);
+  try {
+    // TODO: Asegurarse de que el endpoint /gt/productosBodeguero soporte filtrado por nombre
+    // Si soporta, pasar el filtro como parámetro: `/gt/productosBodeguero?nombre=${filtros.nombre}`
+    const response = await api.get('/gt/productosBodeguero'); // Llamada a la API
+    console.log('Respuesta completa de /gt/productosBodeguero:', response.data); // Log para depuración
+    
+    // TODO: Verificar la estructura exacta de la respuesta y ajustarla si es necesario
+    // Asumiendo que response.data contiene directamente el array de productos
+     if (Array.isArray(response.data)) {
+        // Simular filtrado por nombre en el frontend si el backend no lo soporta
+        const filteredData = response.data.filter((p: any) => 
+           p.nombreEquipo.toLowerCase().includes(filtros.nombre.toLowerCase())
+        );
+        return filteredData as ProductoBodeguero[];
+    } else {
+        console.error('La respuesta de /gt/productosBodeguero no es un array:', response.data);
+        return [];
+    }
+
+  } catch (error: any) {
+    console.error('Error cargando mis productos:', error);
+    // TODO: Manejar el error de forma más amigable
+    throw error;
+  }
+  
+  /*
+  // --- Código mockeado anterior (comentado) ---
   console.log('Simulando llamada a /productosBodeguero con filtros:', filtros);
-  // **Aquí iría la llamada a la API**
-  // Ejemplo: const data = await productService.obtenerProductosBodeguero(filtros);
-  // return data;
-
-  // Datos mockeados para pruebas (reemplazar con la llamada real)
   const mockProductos: ProductoBodeguero[] = [
-    {
-      _id: 'prod1',
-      tipo: 'Nuevo',
-      codigoModelo: '15S128AMA',
-      nombreEquipo: 'iPhone 15',
-      cantidad: 2,
-      codigoB: ['CB001', 'CB002'],
-    },
-    {
-      _id: 'prod2',
-      tipo: 'Openbox',
-      codigoModelo: '11S64BLA',
-      nombreEquipo: 'iPhone 11',
-      cantidad: 1,
-      codigoB: ['CB003'],
-    },
-  ];
-
-  // Simular filtrado básico por nombre (ajustar según los filtros reales)
+// ... existing code ...
   return mockProductos.filter(p => 
     p.nombreEquipo.toLowerCase().includes(filtros.nombre?.toLowerCase() || '')
   );
+  // --- Fin código mockeado anterior ---
+  */
 };
 
 export default function MisProductosScreen() {
@@ -56,22 +64,22 @@ export default function MisProductosScreen() {
   const [modalTitle, setModalTitle] = useState('');
   const [filtros, setFiltros] = useState({ nombre: '' }); // Filtro básico de nombre
 
-  const cargarMisProductos = async () => {
-    setLoading(true);
-    try {
-      const data = await obtenerMisProductos(filtros);
-      setProductos(data);
-    } catch (error) {
-      console.error('Error cargando mis productos:', error);
-      // TODO: Mostrar un mensaje de error al usuario
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Cargar datos al montar el componente y cuando cambie los filtros
   useEffect(() => {
-    cargarMisProductos();
-  }, [filtros]); // Recargar al cambiar filtros
+    const fetchMisProductos = async () => {
+      setLoading(true);
+      try {
+        const data = await obtenerMisProductos(filtros);
+        setProductos(data);
+      } catch (error: any) {
+         Alert.alert('Error', error.msg || 'Error al cargar mis productos');
+         setProductos([]); // Limpiar lista en caso de error
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMisProductos();
+  }, [filtros]); // Dependencia en filtros para recargar al cambiar nombre
 
   const verCodigosBarras = (codigos: string[], titulo: string) => {
     setCodigosBarras(codigos);
@@ -79,17 +87,24 @@ export default function MisProductosScreen() {
     setModalVisible(true);
   };
 
-  const renderProducto = ({ item }: { item: ProductoBodeguero }) => (
-    <View style={styles.row}>
-      <Text style={styles.cell}>{item.tipo}</Text>
-      <Text style={styles.cell}>{item.codigoModelo}</Text>
-      <Text style={styles.cell}>{item.nombreEquipo}</Text>
-      <Text style={styles.cell}>{item.cantidad}</Text>
-      <TouchableOpacity onPress={() => verCodigosBarras(item.codigoB, `Códigos de Barras de ${item.nombreEquipo}`)} style={styles.codesIcon}>
-        <MaterialIcons name="visibility" size={20} color="#007AFF" />
-      </TouchableOpacity>
-    </View>
-  );
+  const renderProducto = ({ item }: { item: ProductoBodeguero }) => {
+    console.log('Renderizando producto:', item);
+    return (
+      <View style={styles.row}>
+        <Text style={styles.cell}>{item.tipo}</Text>
+        <Text style={styles.cell}>{item.codigoModelo}</Text>
+        <Text style={styles.cell}>{item.nombreEquipo}</Text>
+        <Text style={styles.cell}>{item.color || 'N/A'}</Text>
+        <Text style={styles.cell}>{item.capacidad || 'N/A'}</Text>
+        {/* Mostrar 1 como cantidad para cada producto individual */}
+        <Text style={styles.cell}>1</Text>
+        {/* Pasar el codigoBarras como un array de un solo elemento */}
+        <TouchableOpacity onPress={() => verCodigosBarras([item.codigoBarras], `Código de Barras de ${item.nombreEquipo}`)} style={styles.codesIcon}>
+          <MaterialIcons name="visibility" size={20} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -109,6 +124,8 @@ export default function MisProductosScreen() {
         <Text style={styles.headerCell}>Tipo</Text>
         <Text style={styles.headerCell}>Código Modelo</Text>
         <Text style={styles.headerCell}>Nombre</Text>
+        <Text style={styles.headerCell}>Color</Text>
+        <Text style={styles.headerCell}>Capacidad</Text>
         <Text style={styles.headerCell}>Cantidad</Text>
         <Text style={styles.headerCell}>Códigos</Text>
       </View>

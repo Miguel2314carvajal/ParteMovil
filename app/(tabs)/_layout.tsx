@@ -41,7 +41,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="nuevo-movimiento"
         options={{
-          title: 'Nuevo Movimiento',
+          title: 'Realizar Movimiento',
         }}
       />
       <Tabs.Screen
@@ -53,7 +53,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="nuevo-producto"
         options={{
-          title: 'Registrar Producto',
+          title: 'Registrar Dispositivos y Accesorios',
         }}
       />
       <Tabs.Screen

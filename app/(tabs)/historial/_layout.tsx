@@ -32,7 +32,7 @@ export default function TabLayout() {
         <Tab.Screen
           name="productos"
           component={MisProductosScreen}
-          options={{ title: 'Mis Productos' }}
+          options={{ title: 'Mis Dispositivos' }}
         />
         <Tab.Screen
           name="accesorios"

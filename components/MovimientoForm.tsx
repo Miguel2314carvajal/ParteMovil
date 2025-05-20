@@ -146,7 +146,7 @@ export default function MovimientoForm() {
   return (
     <ScrollView style={styles.container}>
       <Card style={styles.section}>
-        <Card.Title title="Productos" />
+        <Card.Title title="Dispositivos" />
         <Card.Content>
           {productos.map((producto, index) => (
             <View key={index} style={[styles.item, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
@@ -170,7 +170,7 @@ export default function MovimientoForm() {
             }}
             style={styles.button}
           >
-            Agregar Producto
+            Agregar Dispositivo
           </Button>
         </Card.Content>
       </Card>
