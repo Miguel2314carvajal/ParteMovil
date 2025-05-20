@@ -18,9 +18,10 @@ import CategoriaSelector from './CategoriaSelector';
 import CapacidadSelector from './CapacidadSelector';
 import TipoSelector from './TipoSelector';
 import { useFocusEffect } from '@react-navigation/native';
+import { categoriaService } from '../services/api';
 
 interface ProductFormData {
-  codigoUnico: string;
+  codigoModelo: string;
   codigoSerial: string;
   nombreEquipo: string;
   color: string;
@@ -31,7 +32,7 @@ interface ProductFormData {
 }
 
 interface AccesorioFormData {
-  codigoUnico: string;
+  codigoModeloAccs: string;
   nombre: string;
   precio: string;
 }
@@ -53,7 +54,7 @@ export default function ProductoForm() {
   const [buscando, setBuscando] = useState(false);
 
   const [formData, setFormData] = useState<ProductFormData>({
-    codigoUnico: '',
+    codigoModelo: '',
     codigoSerial: '',
     nombreEquipo: '',
     color: '',
@@ -64,7 +65,7 @@ export default function ProductoForm() {
   });
 
   const [accesorioData, setAccesorioData] = useState<AccesorioFormData>({
-    codigoUnico: '',
+    codigoModeloAccs: '',
     nombre: '',
     precio: '',
   });
@@ -92,7 +93,7 @@ export default function ProductoForm() {
       setCodigoBarrasDispositivo(null);
       setCodigoBarrasAccesorio(null);
       setFormData({
-        codigoUnico: '',
+        codigoModelo: '',
         codigoSerial: '',
         nombreEquipo: '',
         color: '',
@@ -102,7 +103,7 @@ export default function ProductoForm() {
         categoria: '',
       });
       setAccesorioData({
-        codigoUnico: '',
+        codigoModeloAccs: '',
         nombre: '',
         precio: '',
       });
@@ -125,10 +126,11 @@ export default function ProductoForm() {
 
       try {
         const accesorioDataToSend = {
-          codigoUnicoAccs: accesorioData.codigoUnico,
+          codigoModeloAccs: accesorioData.codigoModeloAccs,
           nombreAccs: accesorioData.nombre,
           precioAccs: accesorioData.precio,
-          disponibilidadAccs: "Disponible"
+          disponibilidadAccs: "Disponible",
+          categoriaNombre: "accesorio"
         };
 
         if (codigoBarrasAccesorio) {
@@ -141,7 +143,7 @@ export default function ProductoForm() {
                 setMostrarFormulario(false);
                 setCodigoBarrasAccesorio(null);
                 setAccesorioData({
-                  codigoUnico: '',
+                  codigoModeloAccs: '',
                   nombre: '',
                   precio: '',
                 });
@@ -150,15 +152,15 @@ export default function ProductoForm() {
           ]);
         } else {
           // Crear nuevo
-          const response = await accesorioService.crearAccesorio(accesorioDataToSend);
-          if (response.accesorio) {
-            setCodigoBarrasAccesorio(response.accesorio.codigoBarrasAccs);
-            setMostrarFormulario(false);
-            setAccesorioData({
-              codigoUnico: '',
-              nombre: '',
-              precio: '',
-            });
+        const response = await accesorioService.crearAccesorio(accesorioDataToSend);
+        if (response.accesorio) {
+          setCodigoBarrasAccesorio(response.accesorio.codigoBarrasAccs);
+          setMostrarFormulario(false);
+          setAccesorioData({
+            codigoModeloAccs: '',
+            nombre: '',
+            precio: '',
+          });
             // Actualizar la lista de accesorios después de crear uno nuevo
             const accesorios = await accesorioService.obtenerAccesorios();
             setListaCodigosAccesorios(accesorios.map((a: { codigoBarrasAccs: string }) => a.codigoBarrasAccs));
@@ -194,7 +196,7 @@ export default function ProductoForm() {
               setMostrarFormulario(false);
               setCodigoBarrasDispositivo(null);
               setFormData({
-                codigoUnico: '',
+                codigoModelo: '',
                 codigoSerial: '',
                 nombreEquipo: '',
                 color: '',
@@ -208,20 +210,20 @@ export default function ProductoForm() {
         ]);
       } else {
         // Crear nuevo
-        const response = await productoService.crearProducto(productoData);
-        if (response.producto) {
-          setCodigoBarrasDispositivo(response.producto.codigoBarras);
-          setMostrarFormulario(false);
-          setFormData({
-            codigoUnico: '',
-            codigoSerial: '',
-            nombreEquipo: '',
-            color: '',
-            capacidad: '',
-            precio: '',
-            tipo: '',
-            categoria: '',
-          });
+      const response = await productoService.crearProducto(productoData);
+      if (response.producto) {
+        setCodigoBarrasDispositivo(response.producto.codigoBarras);
+        setMostrarFormulario(false);
+        setFormData({
+          codigoModelo: '',
+          codigoSerial: '',
+          nombreEquipo: '',
+          color: '',
+          capacidad: '',
+          precio: '',
+          tipo: '',
+          categoria: '',
+        });
           // Cambia el nombre aquí
           const productosResponse = await productoService.obtenerProductos();
           const productos = productosResponse.productos || [];
@@ -271,7 +273,7 @@ export default function ProductoForm() {
         console.log('Datos del producto recibidos:', res.producto);
         if (res.producto) {
           setFormData({
-            codigoUnico: res.producto.codigoUnico || '',
+            codigoModelo: res.producto.codigoModelo || '',
             codigoSerial: res.producto.codigoSerial || '',
             nombreEquipo: res.producto.nombreEquipo || '',
             color: res.producto.color || '',
@@ -287,7 +289,7 @@ export default function ProductoForm() {
         const res = await accesorioService.obtenerAccesorioPorCodigo(codigoBarras);
         if (res.accesorio) {
           setAccesorioData({
-            codigoUnico: res.accesorio.codigoUnicoAccs || '',
+            codigoModeloAccs: res.accesorio.codigoModeloAccs || '',
             nombre: res.accesorio.nombreAccs || '',
             precio: res.accesorio.precioAccs ? res.accesorio.precioAccs.toString() : '',
           });
@@ -328,13 +330,14 @@ export default function ProductoForm() {
           Alert.alert(
             'Detalle del producto',
             `Código de Barras: ${res.producto.codigoBarras}\n` +
-            `Código Único: ${res.producto.codigoUnico}\n` +
+            `Código de Modelo: ${res.producto.codigoModelo}\n` +
             `Código Serial: ${res.producto.codigoSerial}\n` +
             `Nombre: ${res.producto.nombreEquipo}\n` +
             `Color: ${res.producto.color}\n` +
             `Capacidad: ${res.producto.capacidad}\n` +
             `Precio: ${res.producto.precio}\n` +
             `Tipo: ${res.producto.tipo}\n` +
+            `Estado: ${res.producto.estado || ''}\n` +
             `Categoría: ${categoria}\n` +
             `Responsable: ${responsable}\n` +
             `Locación: ${res.producto.locacion || ''}\n` +
@@ -355,12 +358,14 @@ export default function ProductoForm() {
           Alert.alert(
             'Detalle del accesorio',
             `Código de Barras: ${res.accesorio.codigoBarrasAccs}\n` +
-            `Código Único: ${res.accesorio.codigoUnicoAccs}\n` +
+            `Código de Modelo: ${res.accesorio.codigoModeloAccs}\n` +
             `Nombre: ${res.accesorio.nombreAccs}\n` +
             `Precio: ${res.accesorio.precioAccs}\n` +
             `Disponibilidad: ${res.accesorio.disponibilidadAccs}\n` +
+            `Categoría: ${res.accesorio.categoriaNombre && Array.isArray(res.accesorio.categoriaNombre) && res.accesorio.categoriaNombre.length > 0 ? res.accesorio.categoriaNombre[0].nombreCategoria : (res.accesorio.categoriaNombre?.nombreCategoria || '')}\n` +
             `Locación: ${res.accesorio.locacionAccs}\n` +
-            `Responsable: ${responsable}\n`
+            `Responsable: ${responsable}\n` +
+            `Fecha Ingreso: ${res.accesorio.fechaIngreso ? new Date(res.accesorio.fechaIngreso).toLocaleString() : ''}`
           );
         }
       }
@@ -372,12 +377,12 @@ export default function ProductoForm() {
   const renderFormularioDispositivos = () => (
     <>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Código Único *</Text>
+        <Text style={styles.label}>Código de Modelo *</Text>
         <TextInput
           style={styles.input}
-          value={formData.codigoUnico}
-          onChangeText={(text) => setFormData({ ...formData, codigoUnico: text })}
-          placeholder="Ingrese el código único"
+          value={formData.codigoModelo}
+          onChangeText={(text) => setFormData({ ...formData, codigoModelo: text })}
+          placeholder="Ingrese el código de modelo"
         />
       </View>
 
@@ -456,12 +461,12 @@ export default function ProductoForm() {
   const renderFormularioAccesorios = () => (
     <>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Código Único *</Text>
+        <Text style={styles.label}>Código de Modelo *</Text>
         <TextInput
           style={styles.input}
-          value={accesorioData.codigoUnico}
-          onChangeText={(text) => setAccesorioData({ ...accesorioData, codigoUnico: text })}
-          placeholder="Ingrese el código único"
+          value={accesorioData.codigoModeloAccs}
+          onChangeText={(text) => setAccesorioData({ ...accesorioData, codigoModeloAccs: text })}
+          placeholder="Ingrese el código de modelo"
         />
       </View>
 
@@ -484,6 +489,11 @@ export default function ProductoForm() {
           placeholder="Ingrese el precio"
           keyboardType="numeric"
         />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Categoría</Text>
+        <Text style={{ padding: 12, backgroundColor: '#eee', borderRadius: 8 }}>Accesorio</Text>
       </View>
     </>
   );
@@ -522,11 +532,11 @@ export default function ProductoForm() {
                           <MaterialIcons name="visibility" size={24} color="#007AFF" />
                         </TouchableOpacity>
                       </View>
-                    </View>
-                  </View>
-                ))}
+                </View>
               </View>
-            )}
+            ))}
+          </View>
+        )}
             {tipoProducto === 'accesorios' && listaCodigosAccesorios.length > 0 && (
               <View>
                 {listaCodigosAccesorios.map((a: string) => (
@@ -544,15 +554,15 @@ export default function ProductoForm() {
                         </TouchableOpacity>
                       </View>
                     </View>
-                  </View>
-                ))}
-              </View>
+          </View>
+        ))}
+          </View>
             )}
 
             <TouchableOpacity style={styles.submitButton} onPress={() => {
               setMostrarFormulario(true);
               setFormData({
-                codigoUnico: '',
+                codigoModelo: '',
                 codigoSerial: '',
                 nombreEquipo: '',
                 color: '',
@@ -564,7 +574,7 @@ export default function ProductoForm() {
               setCodigoBarrasDispositivo(null);
               setCodigoBarrasAccesorio(null);
               setAccesorioData({
-                codigoUnico: '',
+                codigoModeloAccs: '',
                 nombre: '',
                 precio: '',
               });
@@ -589,7 +599,7 @@ export default function ProductoForm() {
                 setCodigoBarrasDispositivo(null);
                 setCodigoBarrasAccesorio(null);
                 setFormData({
-                  codigoUnico: '',
+                  codigoModelo: '',
                   codigoSerial: '',
                   nombreEquipo: '',
                   color: '',
@@ -599,7 +609,7 @@ export default function ProductoForm() {
                   categoria: '',
                 });
                 setAccesorioData({
-                  codigoUnico: '',
+                  codigoModeloAccs: '',
                   nombre: '',
                   precio: '',
                 });

@@ -51,13 +51,15 @@ export default function CategoriaSelector({ value, onChange }: CategoriaSelector
         style={styles.picker}
       >
         <Picker.Item label="Seleccione una categoría" value="" />
-        {categorias.map((categoria) => (
-          <Picker.Item
-            key={categoria._id}
-            label={categoria.nombreCategoria}
-            value={categoria.nombreCategoria}  // Enviamos el nombre de la categoría
-          />
-        ))}
+        {categorias
+          .filter((cat: Categoria) => cat.nombreCategoria !== 'Accesorio')
+          .map((categoria) => (
+            <Picker.Item
+              key={categoria._id}
+              label={categoria.nombreCategoria}
+              value={categoria.nombreCategoria}  // Enviamos el nombre de la categoría
+            />
+          ))}
       </Picker>
     </View>
   );

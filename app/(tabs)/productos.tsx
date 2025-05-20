@@ -1,160 +1,193 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
+import { stockService } from '../../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-interface Product {
-  id: string;
-  name: string;
-  quantity: number;
-  category: string;
-}
+const VerProductosScreen = () => {
+  const [filtros, setFiltros] = useState({ nombre: '', capacidad: '', categoria: '' });
+  const [productos, setProductos] = useState([]);
+  const [accesorios, setAccesorios] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [codigosBarras, setCodigosBarras] = useState<string[]>([]);
+  const [modalTitle, setModalTitle] = useState('');
 
-export default function ProductosScreen() {
-  const insets = useSafeAreaInsets();
-  const [searchQuery, setSearchQuery] = useState('');
+  const obtenerStock = async () => {
+    setLoading(true);
+    try {
+      const data = await stockService.obtenerStockDisponible(filtros);
+      setProductos(data.productos || []);
+      setAccesorios(data.accesorios || []);
+    } catch (error: any) {
+      alert(error.msg || 'Error al obtener el stock');
+    }
+    setLoading(false);
+  };
 
-  // TODO: Reemplazar con datos reales de la API
-  const mockProducts: Product[] = [
-    { id: '1', name: 'Producto 1', quantity: 10, category: 'Categoría 1' },
-    { id: '2', name: 'Producto 2', quantity: 5, category: 'Categoría 2' },
-    { id: '3', name: 'Producto 3', quantity: 15, category: 'Categoría 1' },
-  ];
+  useEffect(() => {
+    obtenerStock();
+  }, []);
 
-  const renderItem = ({ item }: { item: Product }) => (
-    <TouchableOpacity style={styles.productCard}>
-      <View style={styles.productInfo}>
-        <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productCategory}>{item.category}</Text>
-      </View>
-      <View style={styles.productQuantity}>
-        <Text style={styles.quantityText}>{item.quantity}</Text>
-        <Text style={styles.quantityLabel}>unidades</Text>
-      </View>
-    </TouchableOpacity>
+  const handleFiltrar = () => {
+    obtenerStock();
+  };
+
+  const verCodigosBarras = (codigos: string[], titulo: string) => {
+    setCodigosBarras(codigos);
+    setModalTitle(titulo);
+    setModalVisible(true);
+  };
+
+  const renderProducto = ({ item }: { item: any }) => (
+    <View style={styles.row}>
+      <Text style={styles.cell}>{item.tipo}</Text>
+      <Text style={styles.cell}>{item.codigoModelo}</Text>
+      <Text style={styles.cell}>{item.nombreEquipo}</Text>
+      <Text style={styles.cell}>{item.color}</Text>
+      <Text style={styles.cell}>{item.capacidad}</Text>
+      <Text style={styles.cell}>{item.cantidad}</Text>
+      <TouchableOpacity onPress={() => verCodigosBarras(item.codigoB, `Códigos de Barras de ${item.nombreEquipo}`)}>
+        <MaterialIcons name="visibility" size={24} color="#007AFF" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderAccesorio = ({ item }: { item: any }) => (
+    <View style={styles.row}>
+      <Text style={styles.cell}>Accesorio</Text>
+      <Text style={styles.cell}>{item.codigoModeloAccs}</Text>
+      <Text style={styles.cell}>{item.nombreAccs}</Text>
+      <Text style={styles.cell}>-</Text>
+      <Text style={styles.cell}>-</Text>
+      <Text style={styles.cell}>{item.cantidad}</Text>
+      <TouchableOpacity onPress={() => verCodigosBarras(item.codigosBarras, `Códigos de Barras de ${item.nombreAccs}`)}>
+        <MaterialIcons name="visibility" size={24} color="#007AFF" />
+      </TouchableOpacity>
+    </View>
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Productos</Text>
-        <TouchableOpacity style={styles.filterButton}>
-          <MaterialIcons name="filter-list" size={24} color="#007AFF" />
+    <View style={styles.container}>
+      <Text style={styles.title}>Stock Disponible</Text>
+      <View style={styles.filtros}>
+        <TextInput
+          style={styles.input}
+          placeholder="Nombre"
+          value={filtros.nombre}
+          onChangeText={text => setFiltros({ ...filtros, nombre: text })}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Capacidad"
+          value={filtros.capacidad}
+          onChangeText={text => setFiltros({ ...filtros, capacidad: text })}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Categoría"
+          value={filtros.categoria}
+          onChangeText={text => setFiltros({ ...filtros, categoria: text })}
+        />
+        <TouchableOpacity style={styles.botonFiltrar} onPress={handleFiltrar}>
+          <Text style={{ color: 'white' }}>Filtrar</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.searchContainer}>
-        <MaterialIcons name="search" size={24} color="#666" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar productos..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+      {/* Productos */}
+      <Text style={styles.sectionTitle}>Dispositivos</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.headerCell}>Tipo</Text>
+        <Text style={styles.headerCell}>Código Modelo</Text>
+        <Text style={styles.headerCell}>Nombre</Text>
+        <Text style={styles.headerCell}>Color</Text>
+        <Text style={styles.headerCell}>Capacidad</Text>
+        <Text style={styles.headerCell}>Cantidad</Text>
+        <Text style={styles.headerCell}>Códigos</Text>
       </View>
-
       <FlatList
-        data={mockProducts}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        data={productos}
+        renderItem={renderProducto}
+        keyExtractor={(item, idx) => item.codigoModelo + idx}
+        ListEmptyComponent={() =>
+          !loading ? <Text style={{ textAlign: 'center', marginTop: 20 }}>No hay productos en stock</Text> : null
+        }
       />
+
+      {/* Accesorios */}
+      <Text style={styles.sectionTitle}>Accesorios</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.headerCell}>Tipo</Text>
+        <Text style={styles.headerCell}>Código Modelo</Text>
+        <Text style={styles.headerCell}>Nombre</Text>
+        <Text style={styles.headerCell}>Color</Text>
+        <Text style={styles.headerCell}>Capacidad</Text>
+        <Text style={styles.headerCell}>Cantidad</Text>
+        <Text style={styles.headerCell}>Códigos</Text>
+      </View>
+      <FlatList
+        data={accesorios}
+        renderItem={renderAccesorio}
+        keyExtractor={(item, idx) => item.codigoModeloAccs + idx}
+        ListEmptyComponent={() =>
+          !loading ? <Text style={{ textAlign: 'center', marginTop: 20 }}>No hay accesorios en stock</Text> : null
+        }
+      />
+
+      {/* Modal para mostrar los códigos de barras */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 12,
+            padding: 24,
+            width: '80%',
+            maxHeight: '70%'
+          }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>
+              {modalTitle}
+            </Text>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {codigosBarras.length > 0 ? (
+                codigosBarras.map((codigo, idx) => (
+                  <Text key={idx} style={{ fontSize: 16, marginBottom: 6, textAlign: 'center' }}>
+                    {codigo}
+                  </Text>
+                ))
+              ) : (
+                <Text style={{ textAlign: 'center', color: '#888' }}>No hay códigos de barras</Text>
+              )}
+            </ScrollView>
+            <TouchableOpacity onPress={() => setModalVisible(false)} style={{ marginTop: 16, alignSelf: 'center' }}>
+              <Text style={{ color: '#007AFF', fontWeight: 'bold', fontSize: 16 }}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  filterButton: {
-    padding: 8,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    margin: 16,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  listContainer: {
-    padding: 16,
-  },
-  productCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  productCategory: {
-    fontSize: 14,
-    color: '#666',
-  },
-  productQuantity: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  quantityText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#007AFF',
-  },
-  quantityLabel: {
-    fontSize: 12,
-    color: '#666',
-  },
-}); 
+  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
+  filtros: { flexDirection: 'row', marginBottom: 12, alignItems: 'center' },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginRight: 8, minWidth: 80 },
+  botonFiltrar: { backgroundColor: '#007AFF', padding: 10, borderRadius: 6 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 24, marginBottom: 8 },
+  headerRow: { flexDirection: 'row', backgroundColor: '#eee', paddingVertical: 8 },
+  headerCell: { flex: 1, fontWeight: 'bold', textAlign: 'center' },
+  row: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#eee', paddingVertical: 8 },
+  cell: { flex: 1, textAlign: 'center' },
+});
+
+export default VerProductosScreen;

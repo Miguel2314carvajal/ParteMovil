@@ -110,7 +110,7 @@ interface Categoria {
 
 export const productoService = {
   crearProducto: async (productoData: {
-    codigoUnico: string;
+    codigoModelo: string;
     codigoSerial: string;
     nombreEquipo: string;
     color: string;
@@ -127,7 +127,7 @@ export const productoService = {
 
       // Adaptamos los datos al formato que espera el backend
       const dataToSend = {
-        codigoUnico: productoData.codigoUnico,
+        codigoModelo: productoData.codigoModelo,
         codigoSerial: productoData.codigoSerial,
         nombreEquipo: productoData.nombreEquipo,
         color: productoData.color,
@@ -170,13 +170,9 @@ export const productoService = {
     }
   },
 
-  obtenerProductoPorCodigo: async (codigoBarras: string) => {
-    try {
-      const response = await api.get(`/gt/listarProducto/${codigoBarras}`);
-      return response.data;
-    } catch (error: any) {
-      throw error.response?.data || { mensaje: 'Error al obtener el producto' };
-    }
+  obtenerProductoPorCodigo: async (codigo: string) => {
+    const response = await api.get(`/gt/listarProducto/${codigo}`);
+    return response.data;
   },
 
   actualizarProducto: async (codigoBarras: string, productoData: any) => {
@@ -188,21 +184,9 @@ export const productoService = {
     }
   },
 
-  eliminarProducto: async (codigoBarras: string) => {
-    try {
-      const response = await api.delete(`/eliminarProducto/${codigoBarras}`);
-      return response.data;
-    } catch (error: any) {
-      throw error.response?.data || { mensaje: 'Error al eliminar el producto' };
-    }
-  },
 
-  obtenerMisProductos: async () => {
-    const token = await AsyncStorage.getItem('token');
-    const config = {
-      headers: { 'Authorization': `Bearer ${token}` }
-    };
-    const response = await api.get('/gt/mis-productos', config);
+  obtenerProductosBodeguero: async () => {
+    const response = await api.get('/productosBodeguero');
     return response.data;
   }
 };
@@ -231,7 +215,7 @@ export const categoriaService = {
 
 export const accesorioService = {
   crearAccesorio: async (accesorioData: {
-    codigoUnicoAccs: string;
+    codigoModeloAccs: string;
     nombreAccs: string;
     precioAccs: string;
   }) => {
@@ -268,13 +252,9 @@ export const accesorioService = {
     }
   },
 
-  obtenerAccesorioPorCodigo: async (codigoBarras: string) => {
-    try {
-      const response = await api.get(`/gt/listarAccesorio/${codigoBarras}`);
-      return response.data;
-    } catch (error: any) {
-      throw error.response?.data || { mensaje: 'Error al obtener el accesorio' };
-    }
+  obtenerAccesorioPorCodigo: async (codigo: string) => {
+    const response = await api.get(`/gt/listarAccesorio/${codigo}`);
+    return response.data;
   },
 
   actualizarAccesorio: async (codigoBarras: string, accesorioData: any) => {
@@ -286,21 +266,41 @@ export const accesorioService = {
     }
   },
 
-  eliminarAccesorio: async (codigoBarras: string) => {
-    try {
-      const response = await api.delete(`/eliminarAccesorio/${codigoBarras}`);
-      return response.data;
-    } catch (error: any) {
-      throw error.response?.data || { mensaje: 'Error al eliminar el accesorio' };
-    }
-  },
+  obtenerAccesoriosBodeguero: async () => {
+    const response = await api.get('/accesoriosBodeguero');
+    return response.data;
+  }
+};
 
-  obtenerMisAccesorios: async () => {
-    const token = await AsyncStorage.getItem('token');
-    const config = {
-      headers: { 'Authorization': `Bearer ${token}` }
-    };
-    const response = await api.get('/gt/mis-accesorios', config);
+export const visualizacionService = {
+  listarMovimientosPorFecha: async (desde: string, hasta: string) => {
+    const response = await api.get(`/gt/movimientos?desde=${desde}&hasta=${hasta}`);
+    return response.data;
+  },
+  listarStockDisponible: async (filtros: { nombre?: string; capacidad?: string; categoria?: string }) => {
+    const response = await api.get('/gt/stock', { params: filtros });
+    return response.data;
+  }
+};
+
+export const movimientoService = {
+  obtenerMovimientoPorId: async (id: string) => {
+    const response = await api.get(`/listarMovimiento/${id}`);
+    return response.data;
+  },
+  obtenerMovimientosBodeguero: async () => {
+    const response = await api.get('/movimientosBodeguero');
+    return response.data;
+  }
+};
+
+export const stockService = {
+  obtenerStockDisponible: async (filtros?: {
+    nombre?: string;
+    capacidad?: string;
+    categoria?: string;
+  }) => {
+    const response = await api.get('gt/stockDisponible', { params: filtros });
     return response.data;
   }
 };
