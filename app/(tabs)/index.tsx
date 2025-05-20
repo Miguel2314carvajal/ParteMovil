@@ -77,7 +77,7 @@ export default function HomeScreen() {
         <MenuCard
           icon="history"
           title="Historial"
-          route="/(tabs)/movimientos"
+          route="/(tabs)/historial"
         />
       </View>
     </ScrollView>

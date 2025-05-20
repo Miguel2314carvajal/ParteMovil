@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
 import { stockService } from '../../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
+import CategoriaSelector from '../../components/CategoriaSelector';
 
 const VerProductosScreen = () => {
   const [filtros, setFiltros] = useState({ nombre: '', capacidad: '', categoria: '' });
@@ -57,8 +58,6 @@ const VerProductosScreen = () => {
       <Text style={styles.cell}>Accesorio</Text>
       <Text style={styles.cell}>{item.codigoModeloAccs}</Text>
       <Text style={styles.cell}>{item.nombreAccs}</Text>
-      <Text style={styles.cell}>-</Text>
-      <Text style={styles.cell}>-</Text>
       <Text style={styles.cell}>{item.cantidad}</Text>
       <TouchableOpacity onPress={() => verCodigosBarras(item.codigosBarras, `Códigos de Barras de ${item.nombreAccs}`)}>
         <MaterialIcons name="visibility" size={24} color="#007AFF" />
@@ -68,7 +67,6 @@ const VerProductosScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Stock Disponible</Text>
       <View style={styles.filtros}>
         <TextInput
           style={styles.input}
@@ -82,12 +80,12 @@ const VerProductosScreen = () => {
           value={filtros.capacidad}
           onChangeText={text => setFiltros({ ...filtros, capacidad: text })}
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Categoría"
-          value={filtros.categoria}
-          onChangeText={text => setFiltros({ ...filtros, categoria: text })}
-        />
+        <View style={styles.categoriaSelectorWrapper}>
+          <CategoriaSelector
+            value={filtros.categoria}
+            onChange={value => setFiltros({ ...filtros, categoria: value })}
+          />
+        </View>
         <TouchableOpacity style={styles.botonFiltrar} onPress={handleFiltrar}>
           <Text style={{ color: 'white' }}>Filtrar</Text>
         </TouchableOpacity>
@@ -119,8 +117,6 @@ const VerProductosScreen = () => {
         <Text style={styles.headerCell}>Tipo</Text>
         <Text style={styles.headerCell}>Código Modelo</Text>
         <Text style={styles.headerCell}>Nombre</Text>
-        <Text style={styles.headerCell}>Color</Text>
-        <Text style={styles.headerCell}>Capacidad</Text>
         <Text style={styles.headerCell}>Cantidad</Text>
         <Text style={styles.headerCell}>Códigos</Text>
       </View>
@@ -180,9 +176,37 @@ const VerProductosScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#fff' },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
-  filtros: { flexDirection: 'row', marginBottom: 12, alignItems: 'center' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 8, marginRight: 8, minWidth: 80 },
-  botonFiltrar: { backgroundColor: '#007AFF', padding: 10, borderRadius: 6 },
+  filtros: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    padding: 8,
+    minWidth: 80,
+    marginRight: 8,
+    backgroundColor: '#fff',
+    height: 40,
+  },
+  categoriaSelectorWrapper: {
+    minWidth: 120,
+    marginRight: 8,
+    height: 40,
+    justifyContent: 'center',
+  },
+  botonFiltrar: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginTop: 24, marginBottom: 8 },
   headerRow: { flexDirection: 'row', backgroundColor: '#eee', paddingVertical: 8 },
   headerCell: { flex: 1, fontWeight: 'bold', textAlign: 'center' },

@@ -33,9 +33,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="movimientos"
+        name="historial"
         options={{
-          title: 'Movimientos',
+          title: 'Historial',
         }}
       />
       <Tabs.Screen
@@ -47,7 +47,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="productos"
         options={{
-          title: 'Productos',
+          title: 'Stock Disponible',
         }}
       />
       <Tabs.Screen

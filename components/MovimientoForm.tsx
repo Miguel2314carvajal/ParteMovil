@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Button, TextInput, Text, Card } from 'react-native-paper';
 import EscanerCodigoBarras from './EscanerCodigoBarras';
 import api from '../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
+import SimpleSelector from './SimpleSelector';
 
 interface Producto {
   codigoBarras: string;
@@ -26,6 +27,28 @@ export default function MovimientoForm() {
   const [areaLlegada, setAreaLlegada] = useState('');
   const [observacion, setObservacion] = useState('');
   const [loading, setLoading] = useState(false);
+  const [areas, setAreas] = useState<{ label: string; value: string }[]>([]);
+
+  const cargarAreas = async () => {
+    try {
+      const response = await api.get('/gt/areasunicas');
+      const formattedAreas = response.data.map((area: string | { nombreArea: string, _id: string }) => {
+        if (typeof area === 'string') {
+          return { label: area, value: area };
+        } else {
+          return { label: area.nombreArea, value: area._id };
+        }
+      });
+      setAreas(formattedAreas);
+    } catch (error) {
+      console.error('Error cargando áreas:', error);
+      Alert.alert('Error', 'No se pudieron cargar las áreas de llegada');
+    }
+  };
+
+  useEffect(() => {
+    cargarAreas();
+  }, []);
 
   const buscarProducto = async (codigo: string) => {
     try {
@@ -52,7 +75,6 @@ export default function MovimientoForm() {
     if (tipoEscaner === 'producto') {
       const producto = await buscarProducto(codigo);
       if (producto) {
-        // Verificar si el producto ya está en la lista
         if (productos.some(p => p.codigoBarras === producto.codigoBarras)) {
           Alert.alert('Error', 'Este producto ya ha sido agregado');
           return;
@@ -62,7 +84,6 @@ export default function MovimientoForm() {
     } else {
       const accesorio = await buscarAccesorio(codigo);
       if (accesorio) {
-        // Verificar si el accesorio ya está en la lista
         if (accesorios.some(a => a.codigoBarrasAccs === accesorio.codigoBarrasAccs)) {
           Alert.alert('Error', 'Este accesorio ya ha sido agregado');
           return;
@@ -94,7 +115,6 @@ export default function MovimientoForm() {
       });
 
       Alert.alert('Éxito', 'Movimiento registrado correctamente');
-      // Limpiar el formulario
       setProductos([]);
       setAccesorios([]);
       setAreaLlegada('');
@@ -185,11 +205,12 @@ export default function MovimientoForm() {
       <Card style={styles.section}>
         <Card.Title title="Detalles del Movimiento" />
         <Card.Content>
-          <TextInput
+          <SimpleSelector
             label="Área de Llegada"
+            options={areas}
             value={areaLlegada}
-            onChangeText={setAreaLlegada}
-            style={styles.input}
+            onChange={setAreaLlegada}
+            placeholder="Seleccione el área de llegada"
           />
           <TextInput
             label="Observación"
