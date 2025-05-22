@@ -11,7 +11,7 @@ interface AccesorioBodeguero {
   codigoBarrasAccs: string; // Este es el campo que buscamos
   codigoModeloAccs: string;
   disponibilidadAccs: string;
-  fechaIngreso: string; // O Date si la parseas
+  fechaIngresoAccs: string; // Asumiendo un campo de fecha de ingreso para accesorios
   locacionAccs: string;
   nombreAccs: string;
   precioAccs: number; // O string, dependiendo de la API
@@ -19,21 +19,43 @@ interface AccesorioBodeguero {
 }
 
 // Implementación real para obtener accesorios del bodeguero
-const obtenerMisAccesorios = async (filtros: { nombre: string }): Promise<AccesorioBodeguero[]> => {
+// TODO: Modificar para aceptar filtros de fecha si el backend lo soporta, si no, filtrar en frontend
+const obtenerMisAccesorios = async (filtros: { nombre: string, fechaDesde: string, fechaHasta: string }): Promise<AccesorioBodeguero[]> => {
   console.log('Llamando a /gt/accesoriosBodeguero con filtros:', filtros);
   try {
-    // TODO: Asegurarse de que el endpoint /gt/accesoriosBodeguero soporte filtrado por nombre
-    // Si soporta, pasar el filtro como parámetro: `/gt/accesoriosBodeguero?nombre=${filtros.nombre}`
-    const response = await api.get('/gt/accesoriosBodeguero'); // Llamada a la API
+    // TODO: Asegurarse de que el endpoint /gt/accesoriosBodeguero soporte filtrado por nombre y fecha
+    // Si soporta, pasar el filtro como parámetro: `/gt/accesoriosBodeguero?nombre=${filtros.nombre}&desde=${filtros.fechaDesde}&hasta=${filtros.fechaHasta}`
+    // TODO: Confirmar si la ruta de bodeguero soporta filtros de fecha. Por ahora, llamamos sin filtros y filtramos en frontend.
+    const response = await api.get('/gt/accesoriosBodeguero'); // Llamada a la API para bodegueros
      console.log('Respuesta completa de /gt/accesoriosBodeguero:', response.data); // Log para depuración
-    
+
     // TODO: Verificar la estructura exacta de la respuesta y ajustarla si es necesario
     // Asumiendo que response.data contiene directamente el array de accesorios
      if (Array.isArray(response.data)) {
-         // Simular filtrado por nombre en el frontend si el backend no lo soporta
-        const filteredData = response.data.filter((a: any) => 
-           a.nombreAccs.toLowerCase().includes(filtros.nombre.toLowerCase())
-        );
+         // Simular filtrado por nombre y fecha en el frontend si el backend no lo soporta
+        const filteredData = response.data.filter((a: any) => {
+           const nombreMatch = a.nombreAccs.toLowerCase().includes(filtros.nombre.toLowerCase());
+
+           // TODO: Implementar lógica de filtrado por fecha para accesorios
+           // Asegurarnos de que item.fechaIngresoAccs exista y sea una fecha válida
+           const fechaAccesorio = a.fechaIngresoAccs ? new Date(a.fechaIngresoAccs) : null; // Usando fechaIngresoAccs
+           let fechaDesdeObj = filtros.fechaDesde ? new Date(filtros.fechaDesde) : null;
+           let fechaHastaObj = filtros.fechaHasta ? new Date(filtros.fechaHasta) : null;
+
+           let fechaMatch = true;
+            if (fechaDesdeObj && fechaAccesorio && fechaAccesorio < fechaDesdeObj) {
+               fechaMatch = false;
+           }
+           // Añadir 23 horas, 59 minutos y 59 segundos a la fecha hasta para incluir todo el día
+           if (fechaHastaObj) {
+              fechaHastaObj.setHours(23, 59, 59, 999);
+           }
+           if (fechaHastaObj && fechaAccesorio && fechaAccesorio > fechaHastaObj) {
+               fechaMatch = false;
+           }
+
+           return nombreMatch && fechaMatch; // Aplicar ambos filtros (nombre y fecha)
+        });
         return filteredData as AccesorioBodeguero[];
     } else {
         console.error('La respuesta de /gt/accesoriosBodeguero no es un array:', response.data);
@@ -43,7 +65,13 @@ const obtenerMisAccesorios = async (filtros: { nombre: string }): Promise<Acceso
   } catch (error: any) {
     console.error('Error cargando mis accesorios:', error);
     // TODO: Manejar el error de forma más amigable
-    throw error;
+    // Si el error es 403, mostrar un mensaje específico
+    if (error.response && error.response.status === 403) {
+        Alert.alert('Error de Acceso', 'No tienes permiso para ver estos accesorios.');
+    } else {
+        Alert.alert('Error', error.message || 'Error al cargar mis accesorios');
+    }
+    throw error; // Re-lanzar el error para que el caller lo maneje si es necesario
   }
   
   /*
@@ -64,7 +92,7 @@ export default function MisAccesoriosScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [codigosBarras, setCodigosBarras] = useState<string[]>([]);
   const [modalTitle, setModalTitle] = useState('');
-  const [filtros, setFiltros] = useState({ nombre: '' }); // Filtro básico de nombre
+  const [filtros, setFiltros] = useState({ nombre: '', fechaDesde: '', fechaHasta: '' }); // Añadir filtros de fecha
 
   // Cargar datos al montar el componente y cuando cambien los filtros
   useEffect(() => {
@@ -81,7 +109,7 @@ export default function MisAccesoriosScreen() {
       }
     };
     fetchMisAccesorios();
-  }, [filtros]); // Dependencia en filtros para recargar al cambiar nombre
+  }, [filtros]); // Dependencia en filtros para recargar al cambiar nombre o fechas
 
   // Función para mostrar el modal de códigos de barras
   const handleVerCodigosBarras = useCallback((codigos: string[], titulo: string) => {
@@ -119,13 +147,31 @@ export default function MisAccesoriosScreen() {
     <View style={styles.container}>
        {/* Filtros (similar a Mis Productos) */}
       <View style={styles.filtrosContainer}>
+          {/* Input Fecha Desde */}
          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar por nombre..."
-            value={filtros.nombre}
-            onChangeText={text => setFiltros({ ...filtros, nombre: text })}
+            style={styles.dateInput}
+            placeholder="Desde: dd/mm/aaaa"
+            value={filtros.fechaDesde}
+            onChangeText={text => setFiltros({ ...filtros, fechaDesde: text })}
+            // TODO: Considerar usar un DatePicker
          />
-         {/* TODO: Agregar botón de filtrar si se necesitan más filtros o una acción explícita */}
+          {/* Input Fecha Hasta */}
+         <TextInput
+            style={styles.dateInput}
+            placeholder="Hasta: dd/mm/aaaa"
+            value={filtros.fechaHasta}
+            onChangeText={text => setFiltros({ ...filtros, fechaHasta: text })}
+            // TODO: Considerar usar un DatePicker
+         />
+          {/* Botón Filtrar */}
+        <TouchableOpacity 
+          style={styles.filterButton}
+          // El useEffect ya reacciona a los cambios en los filtros
+          // onPress={() => { /* opcional: refetch explícito si no se usa useEffect con dependencia */ } }
+        >
+           <Text style={styles.filterButtonText}>Filtrar</Text>
+        </TouchableOpacity>
+
       </View>
       {/* Encabezado de la tabla */}
       <View style={styles.headerRow}>
@@ -156,11 +202,9 @@ export default function MisAccesoriosScreen() {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '80%', maxHeight: '70%' }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>
-              {modalTitle}
-            </Text>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{modalTitle}</Text>
             <ScrollView style={{ maxHeight: 300 }}>
               {codigosBarras.length > 0 ? (
                 codigosBarras.map((codigo, idx) => (
@@ -172,8 +216,8 @@ export default function MisAccesoriosScreen() {
                 <Text style={{ textAlign: 'center', color: '#888' }}>No hay códigos de barras</Text>
               )}
             </ScrollView>
-            <TouchableOpacity onPress={() => setModalVisible(false)} style={{ marginTop: 16, alignSelf: 'center' }}>
-              <Text style={{ color: '#007AFF', fontWeight: 'bold', fontSize: 16 }}>Cerrar</Text>
+            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -188,23 +232,95 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     padding: 16,
   },
-   filtrosContainer: {
+  filtrosContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    backgroundColor: '#fff',
+    borderRadius: 8,
     marginBottom: 12,
-    // Añadir estilos si se necesitan más filtros en fila
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
   },
-  searchInput: {
+  dateInput: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 6,
     padding: 8,
     backgroundColor: '#fff',
     height: 40,
+    flex: 1,
+    marginRight: 8,
   },
-  headerRow: { flexDirection: 'row', backgroundColor: '#eee', paddingVertical: 8, marginBottom: 8, borderRadius: 6 },
-  headerCell: { flex: 1, fontWeight: 'bold', textAlign: 'center' },
-  row: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#eee', paddingVertical: 12, alignItems: 'center' },
-  cell: { flex: 1, textAlign: 'center' },
+  filterButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 6,
+    padding: 10,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    backgroundColor: '#eee',
+    paddingVertical: 8,
+    marginBottom: 8,
+    borderRadius: 6,
+  },
+  headerCell: {
+    flex: 1,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  row: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cell: {
+    flex: 1,
+    textAlign: 'center',
+  },
   codesIcon: {
-    paddingHorizontal: 10, // Añadir padding para que el área táctil sea más grande
+    paddingHorizontal: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 24,
+    width: '80%',
+    maxHeight: '70%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  closeButton: {
+    marginTop: 16,
+    alignSelf: 'center',
+  },
+  closeButtonText: {
+    color: '#007AFF',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 }); 
