@@ -274,7 +274,15 @@ export const accesorioService = {
 
 export const visualizacionService = {
   listarMovimientosPorFecha: async (desde: string, hasta: string) => {
-    const response = await api.get(`/gt/movimientos?desde=${desde}&hasta=${hasta}`);
+    const response = await api.get(`/gt/movimientosBodeguero?desde=${desde}&hasta=${hasta}`);
+    return response.data;
+  },
+  listarProductosPorFecha: async (fechaDesde: string, fechaHasta: string) => {
+    const response = await api.get(`/gt/productosBodeguero?desde=${fechaDesde}&hasta=${fechaHasta}`);
+    return response.data;
+  },
+  listarAccesoriosPorFecha: async (fechaDesde: string, fechaHasta: string) => {
+    const response = await api.get(`/gt/accesoriosBodeguero?desde=${fechaDesde}&hasta=${fechaHasta}`);
     return response.data;
   },
   listarStockDisponible: async (filtros: { nombre?: string; capacidad?: string; categoria?: string }) => {

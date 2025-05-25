@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, Alert, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import api from '../../../services/api'; // Ajustar la ruta si es diferente
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { visualizacionService } from '../../../services/api';
 
 // TODO: Definir la interfaz del producto según el endpoint /productosBodeguero si es diferente
 interface ProductoBodeguero {
@@ -18,59 +20,30 @@ interface ProductoBodeguero {
 }
 
 // Implementación real para obtener productos del bodeguero
-// TODO: Modificar para aceptar filtros de fecha si el backend lo soporta, si no, filtrar en frontend
 const obtenerMisProductos = async (filtros: { nombre: string, fechaDesde: string, fechaHasta: string }): Promise<ProductoBodeguero[]> => {
   console.log('Llamando a /gt/productosBodeguero con filtros:', filtros);
   try {
-    // TODO: Asegurarse de que el endpoint /gt/productosBodeguero soporte filtrado por nombre y fecha
-    // Si soporta, pasar el filtro como parámetro: `/gt/productosBodeguero?nombre=${filtros.nombre}&desde=${filtros.fechaDesde}&hasta=${filtros.fechaHasta}`
-    // TODO: Confirmar si la ruta de bodeguero soporta filtros de fecha. Por ahora, llamamos sin filtros y filtramos en frontend.
-    const response = await api.get('/gt/productosBodeguero'); // Llamada a la API para bodegueros
-    console.log('Respuesta completa de /gt/productosBodeguero:', response.data); // Log para depuración
+    const response = await visualizacionService.listarProductosPorFecha(filtros.fechaDesde, filtros.fechaHasta);
+    console.log('Respuesta completa de /gt/productosBodeguero:', response);
 
-    // TODO: Verificar la estructura exacta de la respuesta y ajustarla si es necesario
-    // Asumiendo que response.data contiene directamente el array de productos
-     if (Array.isArray(response.data)) {
-        // Simular filtrado por nombre y fecha en el frontend si el backend no lo soporta
-        const filteredData = response.data.filter((p: any) => {
-           const nombreMatch = p.nombreEquipo.toLowerCase().includes(filtros.nombre.toLowerCase());
-
-           // TODO: Implementar lógica de filtrado por fecha
-           // Asegurarnos de que item.fechaIngreso exista y sea una fecha válida
-           const fechaProducto = p.fechaIngreso ? new Date(p.fechaIngreso) : null;
-           let fechaDesdeObj = filtros.fechaDesde ? new Date(filtros.fechaDesde) : null;
-           let fechaHastaObj = filtros.fechaHasta ? new Date(filtros.fechaHasta) : null;
-
-           let fechaMatch = true;
-           if (fechaDesdeObj && fechaProducto && fechaProducto < fechaDesdeObj) {
-               fechaMatch = false;
-           }
-           // Añadir 23 horas, 59 minutos y 59 segundos a la fecha hasta para incluir todo el día
-           if (fechaHastaObj) {
-              fechaHastaObj.setHours(23, 59, 59, 999);
-           }
-           if (fechaHastaObj && fechaProducto && fechaProducto > fechaHastaObj) {
-               fechaMatch = false;
-           }
-
-           return nombreMatch && fechaMatch; // Aplicar ambos filtros (nombre y fecha)
-        });
-        return filteredData as ProductoBodeguero[];
+    if (Array.isArray(response)) {
+      const filteredData = response.filter((p: any) => {
+        const nombreMatch = p.nombreEquipo.toLowerCase().includes(filtros.nombre.toLowerCase());
+        return nombreMatch;
+      });
+      return filteredData as ProductoBodeguero[];
     } else {
-        console.error('La respuesta de /gt/productosBodeguero no es un array:', response.data);
-        return [];
+      console.error('La respuesta de /gt/productosBodeguero no es un array:', response);
+      return [];
     }
-
   } catch (error: any) {
     console.error('Error cargando mis productos:', error);
-    // TODO: Manejar el error de forma más amigable
-    // Si el error es 403, mostrar un mensaje específico
     if (error.response && error.response.status === 403) {
-        Alert.alert('Error de Acceso', 'No tienes permiso para ver estos productos.');
+      Alert.alert('Error de Acceso', 'No tienes permiso para ver estos productos.');
     } else {
-        Alert.alert('Error', error.message || 'Error al cargar mis productos');
+      Alert.alert('Error', error.message || 'Error al cargar mis productos');
     }
-    throw error; // Re-lanzar el error para que el caller lo maneje si es necesario
+    throw error;
   }
 };
 
@@ -81,6 +54,8 @@ export default function MisProductosScreen() {
   const [codigosBarras, setCodigosBarras] = useState<string[]>([]);
   const [modalTitle, setModalTitle] = useState('');
   const [filtros, setFiltros] = useState({ nombre: '', fechaDesde: '', fechaHasta: '' }); // Añadir filtros de fecha
+  const [showDesdePicker, setShowDesdePicker] = useState(false);
+  const [showHastaPicker, setShowHastaPicker] = useState(false);
 
   // Cargar datos al montar el componente y cuando cambien los filtros
   useEffect(() => {
@@ -126,33 +101,71 @@ export default function MisProductosScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Filtros (simplificado para esta vista) */}
+      {/* Filtros */}
       <View style={styles.filtrosContainer}>
-         {/* Input Fecha Desde */}
-         <TextInput
+        <View style={styles.dateInputsContainer}>
+          {/* Fecha Desde */}
+          <TouchableOpacity
             style={styles.dateInput}
-            placeholder="Desde: dd/mm/aaaa"
-            value={filtros.fechaDesde}
-            onChangeText={text => setFiltros({ ...filtros, fechaDesde: text })}
-            // TODO: Considerar usar un DatePicker
-         />
-          {/* Input Fecha Hasta */}
-         <TextInput
+            onPress={() => setShowDesdePicker(true)}
+          >
+            <Text style={{ color: filtros.fechaDesde ? '#000' : '#888' }}>
+              {filtros.fechaDesde ? filtros.fechaDesde : 'Selecciona fecha desde'}
+            </Text>
+          </TouchableOpacity>
+          {showDesdePicker && (
+            <DateTimePicker
+              value={filtros.fechaDesde ? new Date(filtros.fechaDesde + 'T00:00:00') : new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                setShowDesdePicker(false);
+                if (selectedDate) {
+                  // Ajustar la fecha para evitar el desfase de zona horaria
+                  const year = selectedDate.getFullYear();
+                  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                  const day = String(selectedDate.getDate()).padStart(2, '0');
+                  const fecha = `${year}-${month}-${day}`;
+                  setFiltros({ ...filtros, fechaDesde: fecha });
+                }
+              }}
+            />
+          )}
+
+          {/* Fecha Hasta */}
+          <TouchableOpacity
             style={styles.dateInput}
-            placeholder="Hasta: dd/mm/aaaa"
-            value={filtros.fechaHasta}
-            onChangeText={text => setFiltros({ ...filtros, fechaHasta: text })}
-            // TODO: Considerar usar un DatePicker
-         />
-          {/* Botón Filtrar */}
+            onPress={() => setShowHastaPicker(true)}
+          >
+            <Text style={{ color: filtros.fechaHasta ? '#000' : '#888' }}>
+              {filtros.fechaHasta ? filtros.fechaHasta : 'Selecciona fecha hasta'}
+            </Text>
+          </TouchableOpacity>
+          {showHastaPicker && (
+            <DateTimePicker
+              value={filtros.fechaHasta ? new Date(filtros.fechaHasta + 'T00:00:00') : new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                setShowHastaPicker(false);
+                if (selectedDate) {
+                  // Ajustar la fecha para evitar el desfase de zona horaria
+                  const year = selectedDate.getFullYear();
+                  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                  const day = String(selectedDate.getDate()).padStart(2, '0');
+                  const fecha = `${year}-${month}-${day}`;
+                  setFiltros({ ...filtros, fechaHasta: fecha });
+                }
+              }}
+            />
+          )}
+        </View>
+        {/* Botón Filtrar */}
         <TouchableOpacity 
           style={styles.filterButton}
-          // El useEffect ya reacciona a los cambios en los filtros
-          // onPress={() => { /* opcional: refetch explícito si no se usa useEffect con dependencia */ } }
         >
-           <Text style={styles.filterButtonText}>Filtrar</Text>
+          <Text style={styles.filterButtonText}>Filtrar</Text>
         </TouchableOpacity>
-
       </View>
 
       {/* Encabezado de la tabla */}
@@ -216,33 +229,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     padding: 16,
   },
-  // Estilos para la sección de filtros (copiar de mis-accesorios.tsx)
   filtrosContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
     backgroundColor: '#fff',
     borderRadius: 8,
     marginBottom: 12,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
   },
-  // Asegurarnos de que searchInput exista aunque no se use en esta vista si se necesita en otra parte del archivo
-  searchInput: { // Mantener para consistencia si se usa en otra parte, si no, eliminar
-     borderWidth: 1,
-     borderColor: '#ccc',
-     borderRadius: 6,
-     padding: 8,
-     backgroundColor: '#fff',
-     height: 40,
-     flex: 1,
-     marginRight: 8,
+  dateInputsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  // Estilos para inputs de fecha (copiar de mis-accesorios.tsx)
   dateInput: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -250,18 +252,15 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#fff',
     height: 40,
-    flex: 1, // Ocupa espacio disponible
-    marginRight: 8, // Espacio a la derecha
+    flex: 1,
+    marginRight: 8,
   },
-  // Estilos para el botón de filtrar (copiar de mis-accesorios.tsx)
   filterButton: {
     backgroundColor: '#007AFF',
     borderRadius: 6,
-    paddingVertical: 8, // Ajustar padding si es necesario
-    paddingHorizontal: 12, // Ajustar padding si es necesario
-    height: 40,
-    justifyContent: 'center',
+    paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   filterButtonText: {
     color: '#fff',

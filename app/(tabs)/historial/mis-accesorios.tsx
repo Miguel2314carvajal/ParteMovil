@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput, Alert, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import api from '../../../services/api'; // Ajustar la ruta si es diferente
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { visualizacionService } from '../../../services/api';
 
 // TODO: Definir la interfaz del accesorio según el endpoint /accesoriosBodeguero si es diferente
 interface AccesorioBodeguero {
@@ -19,71 +21,31 @@ interface AccesorioBodeguero {
 }
 
 // Implementación real para obtener accesorios del bodeguero
-// TODO: Modificar para aceptar filtros de fecha si el backend lo soporta, si no, filtrar en frontend
 const obtenerMisAccesorios = async (filtros: { nombre: string, fechaDesde: string, fechaHasta: string }): Promise<AccesorioBodeguero[]> => {
   console.log('Llamando a /gt/accesoriosBodeguero con filtros:', filtros);
   try {
-    // TODO: Asegurarse de que el endpoint /gt/accesoriosBodeguero soporte filtrado por nombre y fecha
-    // Si soporta, pasar el filtro como parámetro: `/gt/accesoriosBodeguero?nombre=${filtros.nombre}&desde=${filtros.fechaDesde}&hasta=${filtros.fechaHasta}`
-    // TODO: Confirmar si la ruta de bodeguero soporta filtros de fecha. Por ahora, llamamos sin filtros y filtramos en frontend.
-    const response = await api.get('/gt/accesoriosBodeguero'); // Llamada a la API para bodegueros
-     console.log('Respuesta completa de /gt/accesoriosBodeguero:', response.data); // Log para depuración
+    const response = await visualizacionService.listarAccesoriosPorFecha(filtros.fechaDesde, filtros.fechaHasta);
+    console.log('Respuesta completa de /gt/accesoriosBodeguero:', response);
 
-    // TODO: Verificar la estructura exacta de la respuesta y ajustarla si es necesario
-    // Asumiendo que response.data contiene directamente el array de accesorios
-     if (Array.isArray(response.data)) {
-         // Simular filtrado por nombre y fecha en el frontend si el backend no lo soporta
-        const filteredData = response.data.filter((a: any) => {
-           const nombreMatch = a.nombreAccs.toLowerCase().includes(filtros.nombre.toLowerCase());
-
-           // TODO: Implementar lógica de filtrado por fecha para accesorios
-           // Asegurarnos de que item.fechaIngresoAccs exista y sea una fecha válida
-           const fechaAccesorio = a.fechaIngresoAccs ? new Date(a.fechaIngresoAccs) : null; // Usando fechaIngresoAccs
-           let fechaDesdeObj = filtros.fechaDesde ? new Date(filtros.fechaDesde) : null;
-           let fechaHastaObj = filtros.fechaHasta ? new Date(filtros.fechaHasta) : null;
-
-           let fechaMatch = true;
-            if (fechaDesdeObj && fechaAccesorio && fechaAccesorio < fechaDesdeObj) {
-               fechaMatch = false;
-           }
-           // Añadir 23 horas, 59 minutos y 59 segundos a la fecha hasta para incluir todo el día
-           if (fechaHastaObj) {
-              fechaHastaObj.setHours(23, 59, 59, 999);
-           }
-           if (fechaHastaObj && fechaAccesorio && fechaAccesorio > fechaHastaObj) {
-               fechaMatch = false;
-           }
-
-           return nombreMatch && fechaMatch; // Aplicar ambos filtros (nombre y fecha)
-        });
-        return filteredData as AccesorioBodeguero[];
+    if (Array.isArray(response)) {
+      const filteredData = response.filter((a: any) => {
+        const nombreMatch = a.nombreAccs.toLowerCase().includes(filtros.nombre.toLowerCase());
+        return nombreMatch;
+      });
+      return filteredData as AccesorioBodeguero[];
     } else {
-        console.error('La respuesta de /gt/accesoriosBodeguero no es un array:', response.data);
-        return [];
+      console.error('La respuesta de /gt/accesoriosBodeguero no es un array:', response);
+      return [];
     }
-
   } catch (error: any) {
     console.error('Error cargando mis accesorios:', error);
-    // TODO: Manejar el error de forma más amigable
-    // Si el error es 403, mostrar un mensaje específico
     if (error.response && error.response.status === 403) {
-        Alert.alert('Error de Acceso', 'No tienes permiso para ver estos accesorios.');
+      Alert.alert('Error de Acceso', 'No tienes permiso para ver estos accesorios.');
     } else {
-        Alert.alert('Error', error.message || 'Error al cargar mis accesorios');
+      Alert.alert('Error', error.message || 'Error al cargar mis accesorios');
     }
-    throw error; // Re-lanzar el error para que el caller lo maneje si es necesario
+    throw error;
   }
-  
-  /*
-  // --- Código mockeado anterior (comentado) ---
-  console.log('Simulando llamada a /accesoriosBodeguero con filtros:', filtros);
-  const mockAccesorios: AccesorioBodeguero[] = [
-// ... existing code ...
-  return mockAccesorios.filter(a => 
-    a.nombreAccs.toLowerCase().includes(filtros.nombre?.toLowerCase() || '')
-  );
-  // --- Fin código mockeado anterior ---
-  */
 };
 
 export default function MisAccesoriosScreen() {
@@ -93,6 +55,8 @@ export default function MisAccesoriosScreen() {
   const [codigosBarras, setCodigosBarras] = useState<string[]>([]);
   const [modalTitle, setModalTitle] = useState('');
   const [filtros, setFiltros] = useState({ nombre: '', fechaDesde: '', fechaHasta: '' }); // Añadir filtros de fecha
+  const [showDesdePicker, setShowDesdePicker] = useState(false);
+  const [showHastaPicker, setShowHastaPicker] = useState(false);
 
   // Cargar datos al montar el componente y cuando cambien los filtros
   useEffect(() => {
@@ -147,31 +111,69 @@ export default function MisAccesoriosScreen() {
     <View style={styles.container}>
        {/* Filtros (similar a Mis Productos) */}
       <View style={styles.filtrosContainer}>
-          {/* Input Fecha Desde */}
-         <TextInput
-            style={styles.dateInput}
-            placeholder="Desde: dd/mm/aaaa"
-            value={filtros.fechaDesde}
-            onChangeText={text => setFiltros({ ...filtros, fechaDesde: text })}
-            // TODO: Considerar usar un DatePicker
-         />
-          {/* Input Fecha Hasta */}
-         <TextInput
-            style={styles.dateInput}
-            placeholder="Hasta: dd/mm/aaaa"
-            value={filtros.fechaHasta}
-            onChangeText={text => setFiltros({ ...filtros, fechaHasta: text })}
-            // TODO: Considerar usar un DatePicker
-         />
-          {/* Botón Filtrar */}
-        <TouchableOpacity 
-          style={styles.filterButton}
-          // El useEffect ya reacciona a los cambios en los filtros
-          // onPress={() => { /* opcional: refetch explícito si no se usa useEffect con dependencia */ } }
-        >
-           <Text style={styles.filterButtonText}>Filtrar</Text>
-        </TouchableOpacity>
+          <View style={styles.dateInputsContainer}>
+            {/* Fecha Desde */}
+            <TouchableOpacity
+              style={styles.dateInput}
+              onPress={() => setShowDesdePicker(true)}
+            >
+              <Text style={{ color: filtros.fechaDesde ? '#000' : '#888' }}>
+                {filtros.fechaDesde ? filtros.fechaDesde : 'Selecciona fecha desde'}
+              </Text>
+            </TouchableOpacity>
+            {showDesdePicker && (
+              <DateTimePicker
+                value={filtros.fechaDesde ? new Date(filtros.fechaDesde + 'T00:00:00') : new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, selectedDate) => {
+                  setShowDesdePicker(false);
+                  if (selectedDate) {
+                    // Ajustar la fecha para evitar el desfase de zona horaria
+                    const year = selectedDate.getFullYear();
+                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(selectedDate.getDate()).padStart(2, '0');
+                    const fecha = `${year}-${month}-${day}`;
+                    setFiltros({ ...filtros, fechaDesde: fecha });
+                  }
+                }}
+              />
+            )}
 
+            {/* Fecha Hasta */}
+            <TouchableOpacity
+              style={styles.dateInput}
+              onPress={() => setShowHastaPicker(true)}
+            >
+              <Text style={{ color: filtros.fechaHasta ? '#000' : '#888' }}>
+                {filtros.fechaHasta ? filtros.fechaHasta : 'Selecciona fecha hasta'}
+              </Text>
+            </TouchableOpacity>
+            {showHastaPicker && (
+              <DateTimePicker
+                value={filtros.fechaHasta ? new Date(filtros.fechaHasta + 'T00:00:00') : new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, selectedDate) => {
+                  setShowHastaPicker(false);
+                  if (selectedDate) {
+                    // Ajustar la fecha para evitar el desfase de zona horaria
+                    const year = selectedDate.getFullYear();
+                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(selectedDate.getDate()).padStart(2, '0');
+                    const fecha = `${year}-${month}-${day}`;
+                    setFiltros({ ...filtros, fechaHasta: fecha });
+                  }
+                }}
+              />
+            )}
+          </View>
+          {/* Botón Filtrar */}
+          <TouchableOpacity 
+            style={styles.filterButton}
+          >
+            <Text style={styles.filterButtonText}>Filtrar</Text>
+          </TouchableOpacity>
       </View>
       {/* Encabezado de la tabla */}
       <View style={styles.headerRow}>
@@ -233,18 +235,20 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   filtrosContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
     backgroundColor: '#fff',
     borderRadius: 8,
     marginBottom: 12,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
+  },
+  dateInputsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   dateInput: {
     borderWidth: 1,
@@ -259,10 +263,9 @@ const styles = StyleSheet.create({
   filterButton: {
     backgroundColor: '#007AFF',
     borderRadius: 6,
-    padding: 10,
-    height: 40,
-    justifyContent: 'center',
+    paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   filterButtonText: {
     color: '#fff',

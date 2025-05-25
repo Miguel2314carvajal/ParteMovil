@@ -8,10 +8,12 @@ import {
   TextInput,
   Alert,
   Modal,
-  ScrollView
+  ScrollView,
+  Platform
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import api from '../../../services/api';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 // Interfaz real de movimientos según la respuesta del backend
 interface Movement {
@@ -46,68 +48,44 @@ interface Movement {
 const obtenerMisMovimientos = async (searchQuery: string, fechaDesde: string, fechaHasta: string): Promise<Movement[]> => {
   console.log('Llamando a /gt/movimientosBodeguero con query y filtros de fecha:', searchQuery, fechaDesde, fechaHasta);
   try {
-    // TODO: Confirmar si el endpoint /gt/movimientosBodeguero soporta filtrado por fecha.
-    // Si soporta, pasar los parámetros de fecha: `/gt/movimientosBodeguero?desde=${fechaDesde}&hasta=${fechaHasta}`
-    // Si no soporta, llamar sin parámetros y filtrar en el frontend.
+    // Construir los parámetros de la URL solo si hay fechas válidas
+    let url = '/gt/movimientosBodeguero';
+    const params = new URLSearchParams();
+    
+    if (fechaDesde) {
+      // Enviar la fecha exactamente como la selecciona el usuario
+      params.append('desde', fechaDesde);
+    }
+    
+    if (fechaHasta) {
+      // Enviar la fecha exactamente como la selecciona el usuario
+      params.append('hasta', fechaHasta);
+    }
 
-    // Por ahora, asumimos que SÍ soporta filtrado por fecha:
-    const response = await api.get(`/gt/movimientosBodeguero?desde=${fechaDesde}&hasta=${fechaHasta}`);
+    // Añadir los parámetros a la URL si existen
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
 
-    console.log('Respuesta completa de /gt/movimientosBodeguero:', response.data); // Log para depuración
+    const response = await api.get(url);
+    console.log('Respuesta completa de /gt/movimientosBodeguero:', response.data);
 
-    // La respuesta esperada es directamente el array de movimientos en response.data
-    // Asegurarse de que response.data sea realmente un array antes de retornarlo
     if (Array.isArray(response.data)) {
-        // TODO: Si el backend no soporta filtrado por fecha, implementar filtrado aquí en el frontend
-        return response.data as Movement[];
+      return response.data as Movement[];
     } else {
-        console.error('La respuesta de /gt/movimientosBodeguero no es un array:', response.data);
-        return [];
+      console.error('La respuesta de /gt/movimientosBodeguero no es un array:', response.data);
+      return [];
     }
 
   } catch (error: any) {
     console.error('Error al obtener mis movimientos:', error);
-    // TODO: Manejar el error de forma más amigable si es necesario
-     // Si el error es 403, mostrar un mensaje específico
     if (error.response && error.response.status === 403) {
-        Alert.alert('Error de Acceso', 'No tienes permiso para ver estos movimientos.');
+      Alert.alert('Error de Acceso', 'No tienes permiso para ver estos movimientos.');
     } else {
-        Alert.alert('Error', error.message || 'Error al cargar mis movimientos');
+      Alert.alert('Error', error.message || 'Error al cargar mis movimientos');
     }
-    throw error; // Re-lanzar el error para que el caller lo maneje
+    throw error;
   }
-  
-  /*
-  // --- Código mockeado anterior (comentado) ---
-  console.log('Simulando llamada a /movimientosBodeguero con query:', searchQuery);
-  const mockMovements: Movement[] = [
-    {
-      _id: '1',
-      productName: 'Producto A',
-      type: 'entrada',
-      quantity: 10,
-      date: '2024-03-20',
-    },
-    {
-      _id: '2',
-      productName: 'Accesorio B',
-      type: 'salida',
-      quantity: 5,
-      date: '2024-03-20',
-    },
-    {
-      _id: '3',
-      productName: 'Producto C',
-      type: 'entrada',
-      quantity: 15,
-      date: '2024-03-19',
-    },
-  ];
-  return mockMovements.filter(move => 
-    move.productName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  // --- Fin código mockeado anterior ---
-  */
 };
 
 export default function MisMovimientosScreen() {
@@ -118,6 +96,8 @@ export default function MisMovimientosScreen() {
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+  const [showDesdePicker, setShowDesdePicker] = useState(false);
+  const [showHastaPicker, setShowHastaPicker] = useState(false);
 
   // Cargar datos al montar el componente y cuando cambie la búsqueda o los filtros de fecha
   useEffect(() => {
@@ -222,30 +202,68 @@ export default function MisMovimientosScreen() {
     <View style={styles.container}>
       {/* Contenedor para los filtros de fecha y el botón */}
       <View style={styles.filtrosContainer}>
-        {/* Input Fecha Desde */}
-        <TextInput
-          style={styles.dateInput}
-          placeholder="Desde: dd/mm/aaaa"
-          value={fechaDesde}
-          onChangeText={setFechaDesde}
-          // TODO: Considerar usar un DatePicker para una mejor experiencia de usuario
-        />
-        {/* Input Fecha Hasta */}
-        <TextInput
-          style={styles.dateInput}
-          placeholder="Hasta: dd/mm/aaaa"
-          value={fechaHasta}
-          onChangeText={setFechaHasta}
-          // TODO: Considerar usar un DatePicker
-        />
+        <View style={styles.dateInputsContainer}>
+          {/* Fecha Desde */}
+          <TouchableOpacity
+            style={styles.dateInput}
+            onPress={() => setShowDesdePicker(true)}
+          >
+            <Text style={{ color: fechaDesde ? '#000' : '#888' }}>
+              {fechaDesde ? fechaDesde : 'Selecciona fecha desde'}
+            </Text>
+          </TouchableOpacity>
+          {showDesdePicker && (
+            <DateTimePicker
+              value={fechaDesde ? new Date(fechaDesde + 'T00:00:00') : new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                setShowDesdePicker(false);
+                if (selectedDate) {
+                  // Ajustar la fecha para evitar el desfase de zona horaria
+                  const year = selectedDate.getFullYear();
+                  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                  const day = String(selectedDate.getDate()).padStart(2, '0');
+                  const fecha = `${year}-${month}-${day}`;
+                  setFechaDesde(fecha);
+                }
+              }}
+            />
+          )}
+
+          {/* Fecha Hasta */}
+          <TouchableOpacity
+            style={styles.dateInput}
+            onPress={() => setShowHastaPicker(true)}
+          >
+            <Text style={{ color: fechaHasta ? '#000' : '#888' }}>
+              {fechaHasta ? fechaHasta : 'Selecciona fecha hasta'}
+            </Text>
+          </TouchableOpacity>
+          {showHastaPicker && (
+            <DateTimePicker
+              value={fechaHasta ? new Date(fechaHasta + 'T00:00:00') : new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                setShowHastaPicker(false);
+                if (selectedDate) {
+                  // Ajustar la fecha para evitar el desfase de zona horaria
+                  const year = selectedDate.getFullYear();
+                  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                  const day = String(selectedDate.getDate()).padStart(2, '0');
+                  const fecha = `${year}-${month}-${day}`;
+                  setFechaHasta(fecha);
+                }
+              }}
+            />
+          )}
+        </View>
         {/* Botón Filtrar */}
         <TouchableOpacity 
           style={styles.filterButton}
-          // TODO: Implementar la lógica de filtrado al hacer clic
-          // Por ahora, el useEffect ya reacciona a los cambios en fechaDesde y fechaHasta
-          // onPress={() => { /* llamar a fetchMovements o similar */ }}
         >
-           <Text style={styles.filterButtonText}>Filtrar</Text>
+          <Text style={styles.filterButtonText}>Filtrar</Text>
         </TouchableOpacity>
       </View>
 
@@ -332,20 +350,30 @@ const styles = StyleSheet.create({
   },
   // Estilos para la sección de filtros (copiar de mis-accesorios.tsx)
   filtrosContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 10,
     backgroundColor: '#fff',
     borderRadius: 8,
     marginBottom: 12,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
   },
-  // Estilos para inputs de fecha (copiar de mis-accesorios.tsx)
+  dateInputsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  dateInputWrapper: {
+    flex: 1,
+    marginRight: 8,
+  },
+  dateLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
   dateInput: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -353,18 +381,13 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#fff',
     height: 40,
-    flex: 1, // Ocupa espacio disponible
-    marginRight: 8, // Espacio a la derecha
   },
-  // Estilos para el botón de filtrar (copiar de mis-accesorios.tsx)
   filterButton: {
     backgroundColor: '#007AFF',
     borderRadius: 6,
-    paddingVertical: 8, // Ajustar padding si es necesario
-    paddingHorizontal: 12, // Ajustar padding si es necesario
-    height: 40,
-    justifyContent: 'center',
+    paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   filterButtonText: {
     color: '#fff',
