@@ -117,8 +117,8 @@ export default function MisAccesoriosScreen() {
               style={styles.dateInput}
               onPress={() => setShowDesdePicker(true)}
             >
-              <Text style={{ color: filtros.fechaDesde ? '#000' : '#888' }}>
-                {filtros.fechaDesde ? filtros.fechaDesde : 'Selecciona fecha desde'}
+              <Text style={{ color: filtros.fechaDesde ? '#000' : '#888', fontSize: 16 }}>
+                {filtros.fechaDesde ? filtros.fechaDesde : 'Desde'}
               </Text>
             </TouchableOpacity>
             {showDesdePicker && (
@@ -129,7 +129,6 @@ export default function MisAccesoriosScreen() {
                 onChange={(event, selectedDate) => {
                   setShowDesdePicker(false);
                   if (selectedDate) {
-                    // Ajustar la fecha para evitar el desfase de zona horaria
                     const year = selectedDate.getFullYear();
                     const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
                     const day = String(selectedDate.getDate()).padStart(2, '0');
@@ -145,8 +144,8 @@ export default function MisAccesoriosScreen() {
               style={styles.dateInput}
               onPress={() => setShowHastaPicker(true)}
             >
-              <Text style={{ color: filtros.fechaHasta ? '#000' : '#888' }}>
-                {filtros.fechaHasta ? filtros.fechaHasta : 'Selecciona fecha hasta'}
+              <Text style={{ color: filtros.fechaHasta ? '#000' : '#888', fontSize: 16 }}>
+                {filtros.fechaHasta ? filtros.fechaHasta : 'Hasta'}
               </Text>
             </TouchableOpacity>
             {showHastaPicker && (
@@ -157,7 +156,6 @@ export default function MisAccesoriosScreen() {
                 onChange={(event, selectedDate) => {
                   setShowHastaPicker(false);
                   if (selectedDate) {
-                    // Ajustar la fecha para evitar el desfase de zona horaria
                     const year = selectedDate.getFullYear();
                     const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
                     const day = String(selectedDate.getDate()).padStart(2, '0');
@@ -168,12 +166,6 @@ export default function MisAccesoriosScreen() {
               />
             )}
           </View>
-          {/* Botón Filtrar */}
-          <TouchableOpacity 
-            style={styles.filterButton}
-          >
-            <Text style={styles.filterButtonText}>Filtrar</Text>
-          </TouchableOpacity>
       </View>
       {/* Encabezado de la tabla */}
       <View style={styles.headerRow}>
@@ -260,40 +252,37 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
-  filterButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 6,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: '#eee',
-    paddingVertical: 8,
+    backgroundColor: '#f8f8f8',
+    paddingVertical: 10,
     marginBottom: 8,
-    borderRadius: 6,
+    borderRadius: 8,
+    borderBottomWidth: 1,
+    borderColor: '#e0e0e0',
   },
   headerCell: {
     flex: 1,
     fontWeight: 'bold',
     textAlign: 'center',
+    fontSize: 15,
+    color: '#333',
   },
   row: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderColor: '#eee',
-    paddingVertical: 12,
+    paddingVertical: 14,
     alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginBottom: 6,
   },
   cell: {
     flex: 1,
     textAlign: 'center',
+    fontSize: 15,
+    color: '#222',
   },
   codesIcon: {
     paddingHorizontal: 10,

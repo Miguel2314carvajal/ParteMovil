@@ -200,7 +200,7 @@ export default function MisMovimientosScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Contenedor para los filtros de fecha y el botón */}
+      {/* Filtros de fecha unificados */}
       <View style={styles.filtrosContainer}>
         <View style={styles.dateInputsContainer}>
           {/* Fecha Desde */}
@@ -208,8 +208,8 @@ export default function MisMovimientosScreen() {
             style={styles.dateInput}
             onPress={() => setShowDesdePicker(true)}
           >
-            <Text style={{ color: fechaDesde ? '#000' : '#888' }}>
-              {fechaDesde ? fechaDesde : 'Selecciona fecha desde'}
+            <Text style={{ color: fechaDesde ? '#000' : '#888', fontSize: 16 }}>
+              {fechaDesde ? fechaDesde : 'Desde'}
             </Text>
           </TouchableOpacity>
           {showDesdePicker && (
@@ -220,7 +220,6 @@ export default function MisMovimientosScreen() {
               onChange={(event, selectedDate) => {
                 setShowDesdePicker(false);
                 if (selectedDate) {
-                  // Ajustar la fecha para evitar el desfase de zona horaria
                   const year = selectedDate.getFullYear();
                   const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
                   const day = String(selectedDate.getDate()).padStart(2, '0');
@@ -236,8 +235,8 @@ export default function MisMovimientosScreen() {
             style={styles.dateInput}
             onPress={() => setShowHastaPicker(true)}
           >
-            <Text style={{ color: fechaHasta ? '#000' : '#888' }}>
-              {fechaHasta ? fechaHasta : 'Selecciona fecha hasta'}
+            <Text style={{ color: fechaHasta ? '#000' : '#888', fontSize: 16 }}>
+              {fechaHasta ? fechaHasta : 'Hasta'}
             </Text>
           </TouchableOpacity>
           {showHastaPicker && (
@@ -248,7 +247,6 @@ export default function MisMovimientosScreen() {
               onChange={(event, selectedDate) => {
                 setShowHastaPicker(false);
                 if (selectedDate) {
-                  // Ajustar la fecha para evitar el desfase de zona horaria
                   const year = selectedDate.getFullYear();
                   const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
                   const day = String(selectedDate.getDate()).padStart(2, '0');
@@ -259,12 +257,6 @@ export default function MisMovimientosScreen() {
             />
           )}
         </View>
-        {/* Botón Filtrar */}
-        <TouchableOpacity 
-          style={styles.filterButton}
-        >
-          <Text style={styles.filterButtonText}>Filtrar</Text>
-        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -346,9 +338,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    paddingHorizontal: 16, // Añadir padding horizontal para mejor apariencia
+    paddingHorizontal: 16,
+    paddingTop: 0, // Asegurar que no haya espacio extra arriba
   },
-  // Estilos para la sección de filtros (copiar de mis-accesorios.tsx)
   filtrosContainer: {
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -359,20 +351,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
+    marginTop: 12, // Agregado para separar del borde superior
   },
   dateInputsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
-  },
-  dateInputWrapper: {
-    flex: 1,
-    marginRight: 8,
-  },
-  dateLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
   },
   dateInput: {
     borderWidth: 1,
@@ -381,24 +365,9 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#fff',
     height: 40,
+    flex: 1,
+    marginRight: 8,
   },
-  filterButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 6,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  // searchContainer y searchIcon ya no se usan en esta vista, se pueden eliminar o dejar comentados si se usan en otro lado
-  // searchContainer: { ... },
-  // searchIcon: { ... },
-  // searchInput ya no se usa en esta vista, se puede eliminar o dejar comentado
-  // searchInput: { ... },
   movementCard: {
     flexDirection: 'column', // Cambiar a columna para apilar la info
     backgroundColor: '#fff',

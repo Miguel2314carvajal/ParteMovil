@@ -13,8 +13,8 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
 
   return (
-    // Wrap the Tab.Navigator in a View to apply padding top
-    <View style={{ flex: 1, paddingTop: insets.top }}>
+    // Wrap the Tab.Navigator in a View para quitar el paddingTop
+    <View style={{ flex: 1 }}>
       <Tab.Navigator
         screenOptions={{
           tabBarActiveTintColor: '#007AFF',
