@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Button } from 'react-native';
+import { StyleSheet, Text, View, Button, SafeAreaView } from 'react-native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 
 interface EscanerCodigoBarrasProps {
@@ -16,13 +16,14 @@ export default function EscanerCodigoBarras({ onCodigoEscaneado, onCerrar }: Esc
       const { status } = await BarCodeScanner.requestPermissionsAsync();
       setHasPermission(status === 'granted');
     };
-
     getBarCodeScannerPermissions();
   }, []);
 
-  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
-    setScanned(true);
-    onCodigoEscaneado(data);
+  const handleBarCodeScanned = ({ data }: { data: string }) => {
+    if (!scanned) {
+      setScanned(true);
+      onCodigoEscaneado(data);
+    }
   };
 
   if (hasPermission === null) {
@@ -35,15 +36,19 @@ export default function EscanerCodigoBarras({ onCodigoEscaneado, onCerrar }: Esc
   return (
     <View style={styles.container}>
       <BarCodeScanner
+        style={StyleSheet.absoluteFillObject}
         onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-        style={styles.scanner}
       />
-      {scanned && (
-        <View style={styles.buttonContainer}>
-          <Button title="Escanear de nuevo" onPress={() => setScanned(false)} />
-          <Button title="Cerrar" onPress={onCerrar} />
-        </View>
-      )}
+      <View style={styles.overlayBottom}>
+        {scanned ? (
+          <>
+            <Button title="Escanear de nuevo" onPress={() => setScanned(false)} color="#007AFF" />
+            <Button title="Cerrar" onPress={onCerrar} color="#FF3B30" />
+          </>
+        ) : (
+          <Button title="Cerrar" onPress={onCerrar} color="#FF3B30" />
+        )}
+      </View>
     </View>
   );
 }
@@ -51,19 +56,19 @@ export default function EscanerCodigoBarras({ onCodigoEscaneado, onCerrar }: Esc
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'center',
+    position: 'relative',
+    backgroundColor: '#000',
   },
-  scanner: {
-    flex: 1,
-  },
-  buttonContainer: {
+  overlayBottom: {
     position: 'absolute',
-    bottom: 20,
     left: 0,
     right: 0,
+    bottom: 0,
+    padding: 16,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     flexDirection: 'row',
     justifyContent: 'space-around',
-    padding: 20,
+    alignItems: 'center',
+    gap: 12,
   },
-}); 
+});

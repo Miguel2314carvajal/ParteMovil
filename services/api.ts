@@ -172,7 +172,7 @@ export const productoService = {
 
   obtenerProductoPorCodigo: async (codigo: string) => {
     const response = await api.get(`/gt/listarProducto/${codigo}`);
-    return response.data;
+      return response.data;
   },
 
   actualizarProducto: async (codigoBarras: string, productoData: any) => {
@@ -254,7 +254,7 @@ export const accesorioService = {
 
   obtenerAccesorioPorCodigo: async (codigo: string) => {
     const response = await api.get(`/gt/listarAccesorio/${codigo}`);
-    return response.data;
+      return response.data;
   },
 
   actualizarAccesorio: async (codigoBarras: string, accesorioData: any) => {
@@ -268,7 +268,7 @@ export const accesorioService = {
 
   obtenerAccesoriosBodeguero: async () => {
     const response = await api.get('/accesoriosBodeguero');
-    return response.data;
+      return response.data;
   }
 };
 
@@ -288,7 +288,7 @@ export const visualizacionService = {
   listarStockDisponible: async (filtros: { nombre?: string; capacidad?: string; categoria?: string }) => {
     const response = await api.get('/gt/stock', { params: filtros });
     return response.data;
-  }
+    }
 };
 
 export const movimientoService = {

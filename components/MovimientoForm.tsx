@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
 import { Button, TextInput, Text, Card } from 'react-native-paper';
 import EscanerCodigoBarras from './EscanerCodigoBarras';
 import api from '../services/api';
@@ -20,6 +20,7 @@ interface Accesorio {
 }
 
 export default function MovimientoForm() {
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [mostrarEscaner, setMostrarEscaner] = useState(false);
   const [tipoEscaner, setTipoEscaner] = useState<'producto' | 'accesorio'>('producto');
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -28,6 +29,10 @@ export default function MovimientoForm() {
   const [observacion, setObservacion] = useState('');
   const [loading, setLoading] = useState(false);
   const [areas, setAreas] = useState<{ label: string; value: string }[]>([]);
+  const [movimientos, setMovimientos] = useState<any[]>([]);
+  const [cargandoMovimientos, setCargandoMovimientos] = useState(false);
+  const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
+  const [movimientoSeleccionado, setMovimientoSeleccionado] = useState<any>(null);
 
   const cargarAreas = async () => {
     try {
@@ -46,8 +51,23 @@ export default function MovimientoForm() {
     }
   };
 
+  const cargarMovimientos = async () => {
+    setCargandoMovimientos(true);
+    try {
+      const response = await api.get('/gt/movimientosBodeguero');
+      console.log('Movimientos recibidos:', response.data);
+      setMovimientos(response.data || []);
+    } catch (error) {
+      console.error('Error cargando movimientos:', error);
+      Alert.alert('Error', 'No se pudieron cargar los movimientos');
+    } finally {
+      setCargandoMovimientos(false);
+    }
+  };
+
   useEffect(() => {
     cargarAreas();
+    cargarMovimientos();
   }, []);
 
   const buscarProducto = async (codigo: string) => {
@@ -71,7 +91,6 @@ export default function MovimientoForm() {
   };
 
   const handleCodigoEscaneado = async (codigo: string) => {
-    console.log('Código escaneado:', codigo);
     if (tipoEscaner === 'producto') {
       const producto = await buscarProducto(codigo);
       if (producto) {
@@ -107,7 +126,7 @@ export default function MovimientoForm() {
 
     setLoading(true);
     try {
-      const response = await api.post('/gt/registrarMovimiento', {
+      await api.post('/gt/registrarMovimiento', {
         productos: productos.map(p => ({ codigoBarras: p.codigoBarras })),
         accesorios: accesorios.map(a => ({ codigoBarrasAccs: a.codigoBarrasAccs })),
         areaLlegada,
@@ -119,6 +138,8 @@ export default function MovimientoForm() {
       setAccesorios([]);
       setAreaLlegada('');
       setObservacion('');
+      setMostrarFormulario(false);
+      cargarMovimientos();
     } catch (error: any) {
       Alert.alert('Error', error.msg || 'Error al registrar el movimiento');
     } finally {
@@ -134,12 +155,102 @@ export default function MovimientoForm() {
     setAccesorios(accesorios.filter((_, i) => i !== idx));
   };
 
-  if (mostrarEscaner) {
+  if (!mostrarFormulario) {
     return (
-      <EscanerCodigoBarras
-        onCodigoEscaneado={handleCodigoEscaneado}
-        onCerrar={() => setMostrarEscaner(false)}
-      />
+      <View style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }}>
+          <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 10 }}>Movimientos Registrados</Text>
+          {cargandoMovimientos && <ActivityIndicator size="large" color="#007AFF" />}
+          {!cargandoMovimientos && movimientos.length === 0 && (
+            <Text style={{ color: '#888', marginBottom: 20 }}>No hay movimientos registrados aún.</Text>
+          )}
+          {!cargandoMovimientos && movimientos.map((mov, idx) => (
+            <Card key={mov._id || idx} style={{ marginBottom: 10 }}>
+              <Card.Title title={`Movimiento #${idx + 1}`} />
+              <Card.Content>
+                <Text>Área de llegada: {mov.areaLlegada?.nombreArea || mov.areaLlegada}</Text>
+                <Text>Observación: {mov.observacion}</Text>
+                <Text>Fecha: {mov.fecha ? new Date(mov.fecha).toLocaleString() : ''}</Text>
+                <Text>Dispositivos: {mov.productos?.length || 0}</Text>
+                <Text>Accesorios: {mov.accesorios?.length || 0}</Text>
+              </Card.Content>
+              <Card.Actions>
+                <Button onPress={() => {
+                  setMovimientoSeleccionado(mov);
+                  setModalDetalleVisible(true);
+                }}>Ver Detalle</Button>
+              </Card.Actions>
+            </Card>
+          ))}
+        </ScrollView>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#007AFF',
+            borderRadius: 12,
+            paddingVertical: 16,
+            paddingHorizontal: 32,
+            margin: 16,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onPress={() => setMostrarFormulario(true)}
+        >
+          <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>Agregar Movimiento</Text>
+        </TouchableOpacity>
+        <Modal
+          visible={modalDetalleVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setModalDetalleVisible(false)}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            <View style={{
+              backgroundColor: '#fff',
+              borderRadius: 12,
+              padding: 24,
+              width: '90%',
+              maxHeight: '80%',
+            }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>Detalle del Movimiento</Text>
+              {movimientoSeleccionado && (
+                <ScrollView>
+                  <Text>Área de llegada: {movimientoSeleccionado.areaLlegada?.nombreArea || movimientoSeleccionado.areaLlegada}</Text>
+                  <Text>Área de salida: {movimientoSeleccionado.areaSalida}</Text>
+                  <Text>Observación: {movimientoSeleccionado.observacion}</Text>
+                  <Text>Fecha: {movimientoSeleccionado.fecha ? new Date(movimientoSeleccionado.fecha).toLocaleString() : ''}</Text>
+                  <Text style={{ fontWeight: 'bold', marginTop: 8 }}>Dispositivos:</Text>
+                  {movimientoSeleccionado.productos && movimientoSeleccionado.productos.length > 0 ? (
+                    movimientoSeleccionado.productos.map((p: any, idx: number) => (
+                      <View key={idx} style={{ marginLeft: 10, marginBottom: 4 }}>
+                        <Text>- {p.nombreEquipo} (SN: {p.codigoSerial})</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={{ marginLeft: 10, marginBottom: 4 }}>Ninguno</Text>
+                  )}
+                  <Text style={{ fontWeight: 'bold', marginTop: 8 }}>Accesorios:</Text>
+                  {movimientoSeleccionado.accesorios && movimientoSeleccionado.accesorios.length > 0 ? (
+                    movimientoSeleccionado.accesorios.map((a: any, idx: number) => (
+                      <View key={idx} style={{ marginLeft: 10, marginBottom: 4 }}>
+                        <Text>- {a.nombreAccs}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={{ marginLeft: 10, marginBottom: 4 }}>Ninguno</Text>
+                  )}
+                  <Text style={{ marginTop: 8 }}>Responsable: {Array.isArray(movimientoSeleccionado.responsable) ? movimientoSeleccionado.responsable[0]?.nombreResponsable : movimientoSeleccionado.responsable?.nombreResponsable}</Text>
+                </ScrollView>
+              )}
+              <Button onPress={() => setModalDetalleVisible(false)} style={{ marginTop: 16 }}>Cerrar</Button>
+            </View>
+          </View>
+        </Modal>
+      </View>
     );
   }
 
@@ -229,8 +340,29 @@ export default function MovimientoForm() {
           >
             Guardar Movimiento
           </Button>
+          <Button
+            mode="outlined"
+            onPress={() => setMostrarFormulario(false)}
+            style={{ marginTop: 10 }}
+          >
+            Cancelar
+          </Button>
         </Card.Content>
       </Card>
+
+      {mostrarEscaner && (
+        <View style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: '#000',
+          zIndex: 999,
+        }}>
+          <EscanerCodigoBarras
+            onCodigoEscaneado={handleCodigoEscaneado}
+            onCerrar={() => setMostrarEscaner(false)}
+          />
+        </View>
+      )}
     </ScrollView>
   );
 }

@@ -422,7 +422,7 @@ export default function ProductoForm() {
           value={formData.categoria ? formData.categoria.toString() : ''}
           onChange={(value) => {
             if (value) {
-              setFormData({ ...formData, categoria: value, capacidad: '' });
+            setFormData({ ...formData, categoria: value, capacidad: '' });
             }
           }}
         />
@@ -499,128 +499,134 @@ export default function ProductoForm() {
   );
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
       <View style={styles.form}>
         <TipoProductoSelector
-          tipoSeleccionado={tipoProducto}
-          onSelect={(tipo) => {
-            setTipoProducto(tipo);
-            setMostrarFormulario(false);
-          }}
+            tipoSeleccionado={tipoProducto}
+            onSelect={(tipo) => {
+              setTipoProducto(tipo);
+              setMostrarFormulario(false);
+            }}
         />
 
-        {!mostrarFormulario && (
-          <>
-            {/* Título general solo si hay códigos y no se está mostrando el formulario */}
-            {((tipoProducto === 'dispositivos' && listaCodigosDispositivos.length > 0) || (tipoProducto === 'accesorios' && listaCodigosAccesorios.length > 0)) ? (
-              <Text style={[styles.codigosListaTitle, { fontSize: 20, marginBottom: 10 }]}>Códigos de Barras Generados</Text>
-            ) : null}
+          {!mostrarFormulario && (
+            <>
+              {/* Título general solo si hay códigos y no se está mostrando el formulario */}
+              {((tipoProducto === 'dispositivos' && listaCodigosDispositivos.length > 0) || (tipoProducto === 'accesorios' && listaCodigosAccesorios.length > 0)) ? (
+                <Text style={[styles.codigosListaTitle, { fontSize: 20, marginBottom: 10 }]}>Códigos de Barras Generados</Text>
+              ) : null}
 
-            {tipoProducto === 'dispositivos' && listaCodigosDispositivos.length > 0 && (
-              <View>
-                {listaCodigosDispositivos.map((p: string) => (
-                  <View key={p} style={styles.codigosListaContainer}>
-                    <View style={styles.codigoBarrasRow}>
-                      <View style={styles.codigoBarrasContainer}>
-                        <CodigoBarras codigo={p} />
-                      </View>
-                      <View style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                        <TouchableOpacity style={styles.editButton} onPress={() => handleEditar(p)}>
-                          <MaterialIcons name="edit" size={24} color="#007AFF" />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.editButton} onPress={() => handleVer(p)}>
-                          <MaterialIcons name="visibility" size={24} color="#007AFF" />
-                        </TouchableOpacity>
-                      </View>
+              {tipoProducto === 'dispositivos' && listaCodigosDispositivos.length > 0 && (
+                <View>
+                  {listaCodigosDispositivos.map((p: string) => (
+                    <View key={p} style={styles.codigosListaContainer}>
+                      <View style={styles.codigoBarrasRow}>
+                        <View style={styles.codigoBarrasContainer}>
+                          <CodigoBarras codigo={p} />
+                        </View>
+                        <View style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                          <TouchableOpacity style={styles.editButton} onPress={() => handleEditar(p)}>
+                            <MaterialIcons name="edit" size={24} color="#007AFF" />
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.editButton} onPress={() => handleVer(p)}>
+                            <MaterialIcons name="visibility" size={24} color="#007AFF" />
+                          </TouchableOpacity>
+                        </View>
                 </View>
               </View>
             ))}
           </View>
         )}
-            {tipoProducto === 'accesorios' && listaCodigosAccesorios.length > 0 && (
-              <View>
-                {listaCodigosAccesorios.map((a: string) => (
-                  <View key={a} style={styles.codigosListaContainer}>
-                    <View style={styles.codigoBarrasRow}>
-                      <View style={styles.codigoBarrasContainer}>
-                        <CodigoBarras codigo={a} />
+              {tipoProducto === 'accesorios' && listaCodigosAccesorios.length > 0 && (
+                <View>
+                  {listaCodigosAccesorios.map((a: string) => (
+                    <View key={a} style={styles.codigosListaContainer}>
+                      <View style={styles.codigoBarrasRow}>
+                        <View style={styles.codigoBarrasContainer}>
+                          <CodigoBarras codigo={a} />
+                        </View>
+                        <View style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                          <TouchableOpacity style={styles.editButton} onPress={() => handleEditar(a)}>
+                            <MaterialIcons name="edit" size={24} color="#007AFF" />
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.editButton} onPress={() => handleVer(a)}>
+                            <MaterialIcons name="visibility" size={24} color="#007AFF" />
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                      <View style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                        <TouchableOpacity style={styles.editButton} onPress={() => handleEditar(a)}>
-                          <MaterialIcons name="edit" size={24} color="#007AFF" />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.editButton} onPress={() => handleVer(a)}>
-                          <MaterialIcons name="visibility" size={24} color="#007AFF" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
           </View>
         ))}
           </View>
-            )}
+              )}
+            </>
+          )}
 
-            <TouchableOpacity style={styles.submitButton} onPress={() => {
-              setMostrarFormulario(true);
-              setFormData({
-                codigoModelo: '',
-                codigoSerial: '',
-                nombreEquipo: '',
-                color: '',
-                capacidad: '',
-                precio: '',
-                tipo: '',
-                categoria: '',
-              });
-              setCodigoBarrasDispositivo(null);
-              setCodigoBarrasAccesorio(null);
-              setAccesorioData({
-                codigoModeloAccs: '',
-                nombre: '',
-                precio: '',
-              });
-            }}>
-              <Text style={styles.submitButtonText}>Agregar</Text>
-            </TouchableOpacity>
-          </>
-        )}
-
-        {mostrarFormulario && (
+          {mostrarFormulario && (
           <>
             {tipoProducto === 'dispositivos' ? renderFormularioDispositivos() : renderFormularioAccesorios()}
             <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-              <Text style={styles.submitButtonText}>
-                {codigoBarrasDispositivo || codigoBarrasAccesorio ? 'Actualizar' : 'Registrar'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: '#aaa', marginTop: 10 }]}
-              onPress={() => {
-                setMostrarFormulario(false);
-                setCodigoBarrasDispositivo(null);
-                setCodigoBarrasAccesorio(null);
-                setFormData({
-                  codigoModelo: '',
-                  codigoSerial: '',
-                  nombreEquipo: '',
-                  color: '',
-                  capacidad: '',
-                  precio: '',
-                  tipo: '',
-                  categoria: '',
-                });
-                setAccesorioData({
-                  codigoModeloAccs: '',
-                  nombre: '',
-                  precio: '',
-                });
-              }}
-            >
-              <Text style={styles.submitButtonText}>Cancelar</Text>
+                <Text style={styles.submitButtonText}>
+                  {codigoBarrasDispositivo || codigoBarrasAccesorio ? 'Actualizar' : 'Registrar'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, { backgroundColor: '#aaa', marginTop: 10 }]}
+                onPress={() => {
+                  setMostrarFormulario(false);
+                  setCodigoBarrasDispositivo(null);
+                  setCodigoBarrasAccesorio(null);
+                  setFormData({
+                    codigoModelo: '',
+                    codigoSerial: '',
+                    nombreEquipo: '',
+                    color: '',
+                    capacidad: '',
+                    precio: '',
+                    tipo: '',
+                    categoria: '',
+                  });
+                  setAccesorioData({
+                    codigoModeloAccs: '',
+                    nombre: '',
+                    precio: '',
+                  });
+                }}
+              >
+                <Text style={styles.submitButtonText}>Cancelar</Text>
             </TouchableOpacity>
           </>
         )}
       </View>
     </ScrollView>
+      {/* Botón Agregar fijo abajo */}
+      {!mostrarFormulario && (
+        <View style={styles.fixedButtonContainer}>
+          <TouchableOpacity style={styles.fixedAddButton} onPress={() => {
+            setMostrarFormulario(true);
+            setFormData({
+              codigoModelo: '',
+              codigoSerial: '',
+              nombreEquipo: '',
+              color: '',
+              capacidad: '',
+              precio: '',
+              tipo: '',
+              categoria: '',
+            });
+            setCodigoBarrasDispositivo(null);
+            setCodigoBarrasAccesorio(null);
+            setAccesorioData({
+              codigoModeloAccs: '',
+              nombre: '',
+              precio: '',
+            });
+          }}>
+            <Text style={styles.fixedAddButtonText}>Agregar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -711,5 +717,31 @@ const styles = StyleSheet.create({
   editButton: {
     padding: 8,
     marginLeft: 8,
+  },
+  fixedButtonContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    padding: 16,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  fixedAddButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+  },
+  fixedAddButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 }); 
