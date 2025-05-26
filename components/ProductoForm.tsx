@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { productoService, accesorioService } from '../services/api';
+import { productoService, accesorioService, stockService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import TipoProductoSelector from './TipoProductoSelector';
 import CodigoBarras from './CodigoBarras';
@@ -115,6 +115,15 @@ export default function ProductoForm() {
     setMostrarFormulario(false);
   };
 
+  const actualizarStock = async () => {
+    try {
+      // Forzar una actualización del stock
+      await stockService.obtenerStockDisponible({});
+    } catch (error) {
+      console.error('Error al actualizar el stock:', error);
+    }
+  };
+
   const handleSubmit = async () => {
     if (tipoProducto === 'accesorios') {
       // Validar campos requeridos para accesorios
@@ -147,23 +156,25 @@ export default function ProductoForm() {
                   nombre: '',
                   precio: '',
                 });
+                actualizarStock(); // Actualizar stock después de actualizar
               }
             }
           ]);
         } else {
           // Crear nuevo
-        const response = await accesorioService.crearAccesorio(accesorioDataToSend);
-        if (response.accesorio) {
-          setCodigoBarrasAccesorio(response.accesorio.codigoBarrasAccs);
-          setMostrarFormulario(false);
-          setAccesorioData({
-            codigoModeloAccs: '',
-            nombre: '',
-            precio: '',
-          });
+          const response = await accesorioService.crearAccesorio(accesorioDataToSend);
+          if (response.accesorio) {
+            setCodigoBarrasAccesorio(response.accesorio.codigoBarrasAccs);
+            setMostrarFormulario(false);
+            setAccesorioData({
+              codigoModeloAccs: '',
+              nombre: '',
+              precio: '',
+            });
             // Actualizar la lista de accesorios después de crear uno nuevo
             const accesorios = await accesorioService.obtenerAccesorios();
             setListaCodigosAccesorios(accesorios.map((a: { codigoBarrasAccs: string }) => a.codigoBarrasAccs));
+            actualizarStock(); // Actualizar stock después de crear
           }
         }
       } catch (error: any) {
@@ -205,29 +216,31 @@ export default function ProductoForm() {
                 tipo: '',
                 categoria: '',
               });
+              actualizarStock(); // Actualizar stock después de actualizar
             }
           }
         ]);
       } else {
         // Crear nuevo
-      const response = await productoService.crearProducto(productoData);
-      if (response.producto) {
-        setCodigoBarrasDispositivo(response.producto.codigoBarras);
-        setMostrarFormulario(false);
-        setFormData({
-          codigoModelo: '',
-          codigoSerial: '',
-          nombreEquipo: '',
-          color: '',
-          capacidad: '',
-          precio: '',
-          tipo: '',
-          categoria: '',
-        });
-          // Cambia el nombre aquí
+        const response = await productoService.crearProducto(productoData);
+        if (response.producto) {
+          setCodigoBarrasDispositivo(response.producto.codigoBarras);
+          setMostrarFormulario(false);
+          setFormData({
+            codigoModelo: '',
+            codigoSerial: '',
+            nombreEquipo: '',
+            color: '',
+            capacidad: '',
+            precio: '',
+            tipo: '',
+            categoria: '',
+          });
+          // Actualizar la lista de productos después de crear uno nuevo
           const productosResponse = await productoService.obtenerProductos();
           const productos = productosResponse.productos || [];
           setListaCodigosDispositivos(productos.map((p: { codigoBarras: string }) => p.codigoBarras));
+          actualizarStock(); // Actualizar stock después de crear
         }
       }
     } catch (error: any) {

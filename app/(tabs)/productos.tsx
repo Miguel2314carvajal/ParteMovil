@@ -3,6 +3,7 @@ import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Modal, S
 import { stockService } from '../../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
 import CategoriaSelector from '../../components/CategoriaSelector';
+import { useFocusEffect } from '@react-navigation/native';
 
 const VerProductosScreen = () => {
   const [filtros, setFiltros] = useState({ nombre: '', capacidad: '', categoria: '' });
@@ -25,9 +26,11 @@ const VerProductosScreen = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    obtenerStock();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      obtenerStock();
+    }, [])
+  );
 
   const handleFiltrar = () => {
     obtenerStock();
