@@ -9,11 +9,15 @@ import {
   Alert,
   Modal,
   ScrollView,
-  Platform
+  Platform,
+  Button
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import api from '../../../services/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
+// @ts-ignore
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import * as Sharing from 'expo-sharing';
 
 // Interfaz real de movimientos según la respuesta del backend
 interface Movement {
@@ -198,8 +202,65 @@ export default function MisMovimientosScreen() {
     </TouchableOpacity>
   );
 
+  const exportarPDF = async () => {
+    try {
+      const htmlContent = `
+        <h1>Historial de Movimientos</h1>
+        <table border="1" style="width:100%; border-collapse: collapse;">
+          <tr>
+            <th>Fecha</th>
+            <th>Responsable</th>
+            <th>Área Salida</th>
+            <th>Área Llegada</th>
+            <th>Productos</th>
+            <th>Accesorios</th>
+          </tr>
+          ${movements.map(mov => `
+            <tr>
+              <td>${new Date(mov.fecha).toLocaleString()}</td>
+              <td>${mov.responsable?.[0]?.nombreResponsable || ''}</td>
+              <td>${mov.areaSalida}</td>
+              <td>${mov.areaLlegada}</td>
+              <td>
+                ${(mov.productos || []).map(p => `${p.nombreEquipo} (${p.codigoBarras})`).join('<br/>')}
+              </td>
+              <td>
+                ${(mov.accesorios || []).map(a => `${a.nombreAccs} (${a.codigoBarrasAccs})`).join('<br/>')}
+              </td>
+            </tr>
+          `).join('')}
+        </table>
+      `;
+
+      const options = {
+        html: htmlContent,
+        fileName: 'historial_movimientos',
+        directory: 'Documents',
+      };
+
+      const file = await RNHTMLtoPDF.convert(options);
+      console.log('PDF generado en:', file.filePath);
+
+      const filePath = file.filePath.startsWith('file://') ? file.filePath : 'file://' + file.filePath;
+      await Sharing.shareAsync(filePath);
+      console.log('Compartir dialogo abierto');
+    } catch (error) {
+      console.error('Error al exportar PDF:', error);
+      Alert.alert('Error', 'No se pudo exportar el PDF');
+    }
+  };
+
   return (
     <View style={styles.container}>
+      {/* Botón de Exportar PDF con icono (nuevo diseño) */}
+      <TouchableOpacity
+        style={styles.exportButton}
+        onPress={exportarPDF}
+      >
+        <MaterialIcons name="picture-as-pdf" size={20} color="#fff" />
+        <Text style={styles.exportButtonText}>Exportar a PDF</Text>
+      </TouchableOpacity>
+
       {/* Filtros de fecha unificados */}
       <View style={styles.filtrosContainer}>
         <View style={styles.dateInputsContainer}>
@@ -339,7 +400,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
     paddingHorizontal: 16,
-    paddingTop: 0, // Asegurar que no haya espacio extra arriba
+    paddingTop: 16, // Ajustado para añadir espacio arriba
   },
   filtrosContainer: {
     backgroundColor: '#fff',
@@ -468,5 +529,21 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  exportButton: {
+    flexDirection: 'row',
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+    alignSelf: 'flex-start', // Para que no ocupe todo el ancho
+    marginBottom: 10,
+  },
+  exportButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 6,
+    fontSize: 15,
   },
 }); 

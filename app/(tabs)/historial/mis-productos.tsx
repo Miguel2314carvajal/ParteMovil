@@ -4,6 +4,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import api from '../../../services/api'; // Ajustar la ruta si es diferente
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { visualizacionService } from '../../../services/api';
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import * as Sharing from 'expo-sharing';
 
 // TODO: Definir la interfaz del producto según el endpoint /productosBodeguero si es diferente
 interface ProductoBodeguero {
@@ -81,7 +83,6 @@ export default function MisProductosScreen() {
   };
 
   const renderProducto = ({ item }: { item: ProductoBodeguero }) => {
-    console.log('Renderizando producto:', item);
     return (
       <View style={styles.row}>
         <Text style={styles.cell}>{item.tipo}</Text>
@@ -89,9 +90,7 @@ export default function MisProductosScreen() {
         <Text style={styles.cell}>{item.nombreEquipo}</Text>
         <Text style={styles.cell}>{item.color || 'N/A'}</Text>
         <Text style={styles.cell}>{item.capacidad || 'N/A'}</Text>
-        {/* Mostrar 1 como cantidad para cada producto individual */}
         <Text style={styles.cell}>1</Text>
-        {/* Pasar el codigoBarras como un array de un solo elemento */}
         <TouchableOpacity onPress={() => verCodigosBarras([item.codigoBarras], `Código de Barras de ${item.nombreEquipo}`)} style={styles.codesIcon}>
           <MaterialIcons name="visibility" size={20} color="#007AFF" />
         </TouchableOpacity>
@@ -99,8 +98,55 @@ export default function MisProductosScreen() {
     );
   };
 
+  const exportarPDF = async () => {
+    try {
+      const htmlContent = `
+        <h1>Listado de Dispositivos</h1>
+        <table border="1" style="width:100%; border-collapse: collapse;">
+          <tr>
+            <th>Tipo</th>
+            <th>Código Modelo</th>
+            <th>Nombre</th>
+            <th>Color</th>
+            <th>Capacidad</th>
+            <th>Cantidad</th>
+            <th>Código de Barras</th>
+          </tr>
+          ${productos.map((p: ProductoBodeguero) => `
+            <tr>
+              <td>${p.tipo}</td>
+              <td>${p.codigoModelo}</td>
+              <td>${p.nombreEquipo}</td>
+              <td>${p.color || 'N/A'}</td>
+              <td>${p.capacidad || 'N/A'}</td>
+              <td>1</td>
+              <td>${p.codigoBarras}</td>
+            </tr>
+          `).join('')}
+        </table>
+      `;
+      const options = {
+        html: htmlContent,
+        fileName: 'dispositivos',
+        directory: 'Documents',
+      };
+      const file = await RNHTMLtoPDF.convert(options);
+      const filePath = file.filePath.startsWith('file://') ? file.filePath : 'file://' + file.filePath;
+      await Sharing.shareAsync(filePath);
+    } catch (error) {
+      console.error('Error al exportar PDF:', error);
+      Alert.alert('Error', 'No se pudo exportar el PDF');
+    }
+  };
+
   return (
     <View style={styles.container}>
+      {/* Botón de Exportar PDF */}
+      <TouchableOpacity style={styles.exportButton} onPress={exportarPDF}>
+        <MaterialIcons name="picture-as-pdf" size={20} color="#fff" />
+        <Text style={styles.exportButtonText}>Exportar a PDF</Text>
+      </TouchableOpacity>
+
       {/* Filtros */}
       <View style={styles.filtrosContainer}>
         <View style={styles.dateInputsContainer}>
@@ -281,5 +327,21 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  exportButton: {
+    flexDirection: 'row',
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+  exportButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 6,
+    fontSize: 15,
   },
 }); 

@@ -4,12 +4,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import api from '../../../services/api'; // Ajustar la ruta si es diferente
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { visualizacionService } from '../../../services/api';
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import * as Sharing from 'expo-sharing';
 
 // TODO: Definir la interfaz del accesorio según el endpoint /accesoriosBodeguero si es diferente
 interface AccesorioBodeguero {
   _id: string;
   __v: number;
-  categoriaNombre: any[]; // Puedes refinar esto si necesitas acceder a los detalles de la categoría
+  categoriaNombre: any[]; // Volvemos a any[] porque la estructura exacta no está clara
   codigoBarrasAccs: string; // Este es el campo que buscamos
   codigoModeloAccs: string;
   disponibilidadAccs: string;
@@ -18,6 +20,9 @@ interface AccesorioBodeguero {
   nombreAccs: string;
   precioAccs: number; // O string, dependiendo de la API
   responsableAccs: any[]; // Puedes refinar esto también
+  color?: string;
+  capacidad?: string;
+  cantidad?: number; // Lo mantenemos pero lo mostraremos como 1 si no viene del backend
 }
 
 // Implementación real para obtener accesorios del bodeguero
@@ -83,89 +88,110 @@ export default function MisAccesoriosScreen() {
     setModalVisible(true);
   }, []);
 
-  const renderAccesorio = ({ item }: { item: AccesorioBodeguero }) => {
-    // Acceso más directo al campo codigosBarrasAccs
-    const codigoDeBarras = item.codigoBarrasAccs;
-    console.log('Valor de codigoDeBarras en renderAccesorio (después de leer item.codigoBarrasAccs):', codigoDeBarras);
-
-    // Construir el array de códigos de barras a pasar. Asegurarse de que sea un array y que el valor no sea undefined/null.
-    // Usamos la variable local codigoDeBarras
-    const codigosParaModal = codigoDeBarras ? [codigoDeBarras] : ['No hay código de barras disponible'];
-
-    return (
-      <View style={styles.row}>
-        <Text style={styles.cell}>Accesorio</Text>
-        <Text style={styles.cell}>{item.codigoModeloAccs}</Text>
-        <Text style={styles.cell}>{item.nombreAccs}</Text>
-        {/* Mostrar 1 como cantidad para cada accesorio individual */}
-        <Text style={styles.cell}>1</Text>
-        {/* Llamar directamente a la función de manejo del clic */}
-        <TouchableOpacity onPress={() => handleVerCodigosBarras(codigosParaModal, `Código de Barras de ${item.nombreAccs}`)} style={styles.codesIcon}>
-          <MaterialIcons name="visibility" size={20} color="#007AFF" />
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
-       {/* Filtros (similar a Mis Productos) */}
-      <View style={styles.filtrosContainer}>
-          <View style={styles.dateInputsContainer}>
-            {/* Fecha Desde */}
-            <TouchableOpacity
-              style={styles.dateInput}
-              onPress={() => setShowDesdePicker(true)}
-            >
-              <Text style={{ color: filtros.fechaDesde ? '#000' : '#888', fontSize: 16 }}>
-                {filtros.fechaDesde ? filtros.fechaDesde : 'Desde'}
-              </Text>
-            </TouchableOpacity>
-            {showDesdePicker && (
-              <DateTimePicker
-                value={filtros.fechaDesde ? new Date(filtros.fechaDesde + 'T00:00:00') : new Date()}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, selectedDate) => {
-                  setShowDesdePicker(false);
-                  if (selectedDate) {
-                    const year = selectedDate.getFullYear();
-                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(selectedDate.getDate()).padStart(2, '0');
-                    const fecha = `${year}-${month}-${day}`;
-                    setFiltros({ ...filtros, fechaDesde: fecha });
-                  }
-                }}
-              />
-            )}
+      {/* Botón de Exportar PDF */}
+      <TouchableOpacity 
+        style={styles.exportButton} 
+        onPress={async () => {
+          try {
+            const htmlContent = `
+              <h1>Listado de Accesorios</h1>
+              <table border="1" style="width:100%; border-collapse: collapse;">
+                <tr>
+                  <th>Tipo</th>
+                  <th>Código Modelo</th>
+                  <th>Nombre</th>
+                  <th>Cantidad</th>
+                  <th>Código de Barras</th>
+                </tr>
+                ${accesorios.map((a: any) => `
+                  <tr>
+                    <td>Accesorio</td>
+                    <td>${a.codigoModeloAccs}</td>
+                    <td>${a.nombreAccs}</td>
+                    <td>${a.cantidad || 1}</td>
+                    <td>${a.codigoBarrasAccs}</td>
+                  </tr>
+                `).join('')}
+              </table>
+            `;
 
-            {/* Fecha Hasta */}
-            <TouchableOpacity
-              style={styles.dateInput}
-              onPress={() => setShowHastaPicker(true)}
-            >
-              <Text style={{ color: filtros.fechaHasta ? '#000' : '#888', fontSize: 16 }}>
-                {filtros.fechaHasta ? filtros.fechaHasta : 'Hasta'}
-              </Text>
-            </TouchableOpacity>
-            {showHastaPicker && (
-              <DateTimePicker
-                value={filtros.fechaHasta ? new Date(filtros.fechaHasta + 'T00:00:00') : new Date()}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(event, selectedDate) => {
-                  setShowHastaPicker(false);
-                  if (selectedDate) {
-                    const year = selectedDate.getFullYear();
-                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(selectedDate.getDate()).padStart(2, '0');
-                    const fecha = `${year}-${month}-${day}`;
-                    setFiltros({ ...filtros, fechaHasta: fecha });
-                  }
-                }}
-              />
-            )}
-          </View>
+            const options = {
+              html: htmlContent,
+              fileName: 'accesorios',
+              directory: 'Documents',
+            };
+
+            const file = await RNHTMLtoPDF.convert(options);
+            const filePath = file.filePath.startsWith('file://') ? file.filePath : 'file://' + file.filePath;
+            await Sharing.shareAsync(filePath);
+          } catch (error) {
+            console.error('Error al exportar PDF:', error);
+            Alert.alert('Error', 'No se pudo exportar el PDF');
+          }
+        }}
+      >
+        <MaterialIcons name="picture-as-pdf" size={20} color="#fff" />
+        <Text style={styles.exportButtonText}>Exportar a PDF</Text>
+      </TouchableOpacity>
+      {/* Filtros (similar a Mis Productos) */}
+      <View style={styles.filtrosContainer}>
+        <View style={styles.dateInputsContainer}>
+          {/* Fecha Desde */}
+          <TouchableOpacity
+            style={styles.dateInput}
+            onPress={() => setShowDesdePicker(true)}
+          >
+            <Text style={{ color: filtros.fechaDesde ? '#000' : '#888', fontSize: 16 }}>
+              {filtros.fechaDesde ? filtros.fechaDesde : 'Desde'}
+            </Text>
+          </TouchableOpacity>
+          {showDesdePicker && (
+            <DateTimePicker
+              value={filtros.fechaDesde ? new Date(filtros.fechaDesde + 'T00:00:00') : new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                setShowDesdePicker(false);
+                if (selectedDate) {
+                  const year = selectedDate.getFullYear();
+                  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                  const day = String(selectedDate.getDate()).padStart(2, '0');
+                  const fecha = `${year}-${month}-${day}`;
+                  setFiltros({ ...filtros, fechaDesde: fecha });
+                }
+              }}
+            />
+          )}
+
+          {/* Fecha Hasta */}
+          <TouchableOpacity
+            style={styles.dateInput}
+            onPress={() => setShowHastaPicker(true)}
+          >
+            <Text style={{ color: filtros.fechaHasta ? '#000' : '#888', fontSize: 16 }}>
+              {filtros.fechaHasta ? filtros.fechaHasta : 'Hasta'}
+            </Text>
+          </TouchableOpacity>
+          {showHastaPicker && (
+            <DateTimePicker
+              value={filtros.fechaHasta ? new Date(filtros.fechaHasta + 'T00:00:00') : new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                setShowHastaPicker(false);
+                if (selectedDate) {
+                  const year = selectedDate.getFullYear();
+                  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                  const day = String(selectedDate.getDate()).padStart(2, '0');
+                  const fecha = `${year}-${month}-${day}`;
+                  setFiltros({ ...filtros, fechaHasta: fecha });
+                }
+              }}
+            />
+          )}
+        </View>
       </View>
       {/* Encabezado de la tabla */}
       <View style={styles.headerRow}>
@@ -175,20 +201,25 @@ export default function MisAccesoriosScreen() {
         <Text style={styles.headerCell}>Cantidad</Text>
         <Text style={styles.headerCell}>Códigos</Text>
       </View>
-
       {/* Lista de accesorios */}
       <FlatList
         data={accesorios}
-        renderItem={renderAccesorio}
+        renderItem={({ item }) => (
+          <View style={styles.row}>
+            <Text style={styles.cell}>Accesorio</Text>
+            <Text style={styles.cell}>{item.codigoModeloAccs}</Text>
+            <Text style={styles.cell}>{item.nombreAccs}</Text>
+            <Text style={styles.cell}>{item.cantidad || 1}</Text>
+            <TouchableOpacity onPress={() => handleVerCodigosBarras([item.codigoBarrasAccs], `Código de Barras de ${item.nombreAccs}`)} style={styles.codesIcon}>
+              <MaterialIcons name="visibility" size={20} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
+        )}
         keyExtractor={(item) => item._id}
         ListEmptyComponent={() =>
           !loading ? <Text style={{ textAlign: 'center', marginTop: 20 }}>No has registrado accesorios</Text> : null
         }
-         // TODO: Implementar lógica de loading indicator si es necesario
-        // refreshing={loading}
-        // onRefresh={cargarMisAccesorios}
       />
-
       {/* Modal para mostrar los códigos de barras */}
       <Modal
         visible={modalVisible}
@@ -314,5 +345,21 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  exportButton: {
+    flexDirection: 'row',
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+  exportButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 6,
+    fontSize: 15,
   },
 }); 
