@@ -162,15 +162,15 @@ export default function ProductoForm() {
           ]);
         } else {
           // Crear nuevo
-          const response = await accesorioService.crearAccesorio(accesorioDataToSend);
-          if (response.accesorio) {
-            setCodigoBarrasAccesorio(response.accesorio.codigoBarrasAccs);
-            setMostrarFormulario(false);
-            setAccesorioData({
+        const response = await accesorioService.crearAccesorio(accesorioDataToSend);
+        if (response.accesorio) {
+          setCodigoBarrasAccesorio(response.accesorio.codigoBarrasAccs);
+          setMostrarFormulario(false);
+          setAccesorioData({
               codigoModeloAccs: '',
-              nombre: '',
-              precio: '',
-            });
+            nombre: '',
+            precio: '',
+          });
             // Actualizar la lista de accesorios después de crear uno nuevo
             const accesorios = await accesorioService.obtenerAccesorios();
             setListaCodigosAccesorios(accesorios.map((a: { codigoBarrasAccs: string }) => a.codigoBarrasAccs));
@@ -222,20 +222,20 @@ export default function ProductoForm() {
         ]);
       } else {
         // Crear nuevo
-        const response = await productoService.crearProducto(productoData);
-        if (response.producto) {
-          setCodigoBarrasDispositivo(response.producto.codigoBarras);
-          setMostrarFormulario(false);
-          setFormData({
+      const response = await productoService.crearProducto(productoData);
+      if (response.producto) {
+        setCodigoBarrasDispositivo(response.producto.codigoBarras);
+        setMostrarFormulario(false);
+        setFormData({
             codigoModelo: '',
-            codigoSerial: '',
-            nombreEquipo: '',
-            color: '',
-            capacidad: '',
-            precio: '',
-            tipo: '',
-            categoria: '',
-          });
+          codigoSerial: '',
+          nombreEquipo: '',
+          color: '',
+          capacidad: '',
+          precio: '',
+          tipo: '',
+          categoria: '',
+        });
           // Actualizar la lista de productos después de crear uno nuevo
           const productosResponse = await productoService.obtenerProductos();
           const productos = productosResponse.productos || [];
