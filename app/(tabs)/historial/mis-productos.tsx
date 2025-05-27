@@ -49,6 +49,21 @@ const obtenerMisProductos = async (filtros: { nombre: string, fechaDesde: string
   }
 };
 
+async function getBarcodeBase64(code: string): Promise<string> {
+  const url = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${code}&includetext`;
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // El resultado es data:image/png;base64,xxxxxx
+      const base64data = reader.result?.toString().split(',')[1] || '';
+      resolve(base64data);
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
 export default function MisProductosScreen() {
   const [productos, setProductos] = useState<ProductoBodeguero[]>([]);
   const [loading, setLoading] = useState(false);
@@ -100,6 +115,24 @@ export default function MisProductosScreen() {
 
   const exportarPDF = async () => {
     try {
+      const filas = await Promise.all(productos.map(async (p) => {
+        const base64 = await getBarcodeBase64(p.codigoBarras);
+        return `
+          <tr>
+            <td>${p.tipo}</td>
+            <td>${p.codigoModelo}</td>
+            <td>${p.nombreEquipo}</td>
+            <td>${p.color || 'N/A'}</td>
+            <td>${p.capacidad || 'N/A'}</td>
+            <td>1</td>
+            <td>
+              <img src="data:image/png;base64,${base64}" style="width:120px; height:40px;" /><br/>
+              <span style="font-size:12px;">${p.codigoBarras}</span>
+            </td>
+          </tr>
+        `;
+      }));
+
       const htmlContent = `
         <h1>Listado de Dispositivos</h1>
         <table border="1" style="width:100%; border-collapse: collapse;">
@@ -112,17 +145,7 @@ export default function MisProductosScreen() {
             <th>Cantidad</th>
             <th>Código de Barras</th>
           </tr>
-          ${productos.map((p: ProductoBodeguero) => `
-            <tr>
-              <td>${p.tipo}</td>
-              <td>${p.codigoModelo}</td>
-              <td>${p.nombreEquipo}</td>
-              <td>${p.color || 'N/A'}</td>
-              <td>${p.capacidad || 'N/A'}</td>
-              <td>1</td>
-              <td>${p.codigoBarras}</td>
-            </tr>
-          `).join('')}
+          ${filas.join('')}
         </table>
       `;
       const options = {

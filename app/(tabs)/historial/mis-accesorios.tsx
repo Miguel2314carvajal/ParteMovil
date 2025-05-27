@@ -53,6 +53,21 @@ const obtenerMisAccesorios = async (filtros: { nombre: string, fechaDesde: strin
   }
 };
 
+async function getBarcodeBase64(code: string): Promise<string> {
+  const url = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${code}&includetext`;
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // El resultado es data:image/png;base64,xxxxxx
+      const base64data = reader.result?.toString().split(',')[1] || '';
+      resolve(base64data);
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
 export default function MisAccesoriosScreen() {
   const [accesorios, setAccesorios] = useState<AccesorioBodeguero[]>([]);
   const [loading, setLoading] = useState(false);
@@ -95,6 +110,22 @@ export default function MisAccesoriosScreen() {
         style={styles.exportButton} 
         onPress={async () => {
           try {
+            const filas = await Promise.all(accesorios.map(async (a: any) => {
+              const base64 = await getBarcodeBase64(a.codigoBarrasAccs);
+              return `
+                <tr>
+                  <td>Accesorio</td>
+                  <td>${a.codigoModeloAccs}</td>
+                  <td>${a.nombreAccs}</td>
+                  <td>${a.cantidad || 1}</td>
+                  <td>
+                    <img src="data:image/png;base64,${base64}" style="width:120px; height:40px;" /><br/>
+                    <span style="font-size:12px;">${a.codigoBarrasAccs}</span>
+                  </td>
+                </tr>
+              `;
+            }));
+
             const htmlContent = `
               <h1>Listado de Accesorios</h1>
               <table border="1" style="width:100%; border-collapse: collapse;">
@@ -105,15 +136,7 @@ export default function MisAccesoriosScreen() {
                   <th>Cantidad</th>
                   <th>Código de Barras</th>
                 </tr>
-                ${accesorios.map((a: any) => `
-                  <tr>
-                    <td>Accesorio</td>
-                    <td>${a.codigoModeloAccs}</td>
-                    <td>${a.nombreAccs}</td>
-                    <td>${a.cantidad || 1}</td>
-                    <td>${a.codigoBarrasAccs}</td>
-                  </tr>
-                `).join('')}
+                ${filas.join('')}
               </table>
             `;
 
