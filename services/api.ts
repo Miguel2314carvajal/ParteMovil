@@ -339,4 +339,7 @@ export const stockService = {
   }
 };
 
+export const actualizarMovimiento = (id: string, nuevaObservacion: string) =>
+  api.put(`/gt/actualizarMovimiento/${id}`, { observacion: nuevaObservacion });
+
 export default api; 

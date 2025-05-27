@@ -102,6 +102,9 @@ export default function MisMovimientosScreen() {
   const [fechaHasta, setFechaHasta] = useState('');
   const [showDesdePicker, setShowDesdePicker] = useState(false);
   const [showHastaPicker, setShowHastaPicker] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editObservation, setEditObservation] = useState('');
+  const [editMovementId, setEditMovementId] = useState<string | null>(null);
 
   // Cargar datos al montar el componente y cuando cambie la búsqueda o los filtros de fecha
   useEffect(() => {
@@ -153,53 +156,48 @@ export default function MisMovimientosScreen() {
     setModalVisible(true);
   };
 
+  const handleEditObservation = (movement: Movement) => {
+    setEditObservation(movement.observacion || '');
+    setEditMovementId(movement._id);
+    setEditModalVisible(true);
+  };
+
+  const handleSaveObservation = async () => {
+    if (!editMovementId) return;
+    try {
+      await api.put(`/gt/actualizarMovimiento/${editMovementId}`, { observacion: editObservation });
+      setEditModalVisible(false);
+      setEditMovementId(null);
+      setEditObservation('');
+      // Refrescar la lista
+      const data = await obtenerMisMovimientos(searchQuery, fechaDesde, fechaHasta);
+      setMovements(data);
+      Alert.alert('Éxito', 'Observación actualizada correctamente');
+    } catch (error: any) {
+      Alert.alert('Error', error.msg || 'No se pudo actualizar la observación');
+    }
+  };
+
   const renderItem = ({ item }: { item: Movement }) => (
-    <TouchableOpacity onPress={() => handleVerDetalle(item)} style={styles.movementCard}>
-      <View style={styles.movementInfo}>
-        {/* Mostrar fecha y áreas */}
-        {/* TODO: Formatear la fecha si es necesario */}
-        <Text style={styles.date}>{new Date(item.fecha).toLocaleString()}</Text>
-        <Text style={styles.movementDetailText}>De: {item.areaSalida || 'N/A'}</Text>
-        <Text style={styles.movementDetailText}>A: {item.areaLlegada || 'N/A'}</Text>
-        
-        {/* Mostrar resumen de productos y accesorios */}
-        {item.productos && item.productos.length > 0 && (
-          <Text style={styles.movementDetailText}>Productos: {item.productos.length}</Text>
-        )}
-        {item.accesorios && item.accesorios.length > 0 && (
-          <Text style={styles.movementDetailText}>Accesorios: {item.accesorios.length}</Text>
-        )}
-
-        {/* Mostrar observación */}
-        <Text style={styles.observationText}>Obs: {item.observacion || 'Sin observación'}</Text>
-        
-        {/* TODO: Opcional: Mostrar responsable */}
-        {/* {item.responsable && item.responsable.length > 0 && (
-            <Text style={styles.movementDetailText}>Responsable: {item.responsable[0].nombreResponsable}</Text>
-        )} */}
-
-      </View>
-      {/* TODO: Reconsiderar si mostrar cantidad total o no, ya que ahora hay productos y accesorios separados */}
-      {/* La vista de cantidad total del mock ya no aplica directamente */}
-      {/* <View
-        style={[
-          styles.movementQuantity,
-          { backgroundColor: item.type === 'entrada' ? '#e6f3ff' : '#ffe6e6' },
-        ]}>
-        <MaterialIcons
-          name={item.type === 'entrada' ? 'arrow-downward' : 'arrow-upward'}
-          size={20}
-          color={item.type === 'entrada' ? '#007AFF' : '#FF3B30'}
-        />
-        <Text
-          style={[
-            styles.quantityText,
-            { color: item.type === 'entrada' ? '#007AFF' : '#FF3B30' },
-          ]}>
-          {item.type === 'entrada' ? '+' : '-'}{item.quantity}
-        </Text>
-      </View> */}
-    </TouchableOpacity>
+    <View style={styles.movementCard}>
+      <TouchableOpacity onPress={() => handleVerDetalle(item)} style={{ flex: 1 }}>
+        <View style={styles.movementInfo}>
+          <Text style={styles.date}>{new Date(item.fecha).toLocaleString()}</Text>
+          <Text style={styles.movementDetailText}>De: {item.areaSalida || 'N/A'}</Text>
+          <Text style={styles.movementDetailText}>A: {item.areaLlegada || 'N/A'}</Text>
+          {item.productos && item.productos.length > 0 && (
+            <Text style={styles.movementDetailText}>Productos: {item.productos.length}</Text>
+          )}
+          {item.accesorios && item.accesorios.length > 0 && (
+            <Text style={styles.movementDetailText}>Accesorios: {item.accesorios.length}</Text>
+          )}
+          <Text style={styles.observationText}>Obs: {item.observacion || 'Sin observación'}</Text>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => handleEditObservation(item)} style={styles.editButton}>
+        <MaterialIcons name="edit" size={24} color="#007AFF" />
+      </TouchableOpacity>
+    </View>
   );
 
   const exportarPDF = async () => {
@@ -391,6 +389,35 @@ export default function MisMovimientosScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={editModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Editar Observación</Text>
+            <TextInput
+              value={editObservation}
+              onChangeText={setEditObservation}
+              multiline
+              numberOfLines={3}
+              style={styles.input}
+              placeholder="Ingrese la nueva observación"
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 }}>
+              <TouchableOpacity onPress={handleSaveObservation} style={[styles.saveButton, { flex: 1, marginRight: 8 }]}> 
+                <Text style={{ color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>Guardar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)} style={[styles.cancelButton, { flex: 1, marginLeft: 8 }]}> 
+                <Text style={{ color: '#007AFF', fontWeight: 'bold', textAlign: 'center' }}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -430,7 +457,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   movementCard: {
-    flexDirection: 'column', // Cambiar a columna para apilar la info
+    flexDirection: 'row',
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
@@ -545,5 +572,32 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 6,
     fontSize: 15,
+  },
+  editButton: {
+    padding: 8,
+    alignSelf: 'center',
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+  },
+  input: {
+    backgroundColor: '#fff',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 60,
+    fontSize: 16,
+    marginBottom: 8,
+    color: '#222'
   },
 }); 
