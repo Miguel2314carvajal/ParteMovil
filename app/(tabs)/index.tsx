@@ -80,6 +80,13 @@ export default function HomeScreen() {
           route="/(tabs)/historial"
         />
       </View>
+      <View style={{ alignItems: 'center', marginTop: 0 }}>
+        <MenuCard
+          icon="search"
+          title="Buscar por código o ID"
+          route="/(tabs)/buscar"
+        />
+      </View>
     </ScrollView>
   );
 }
@@ -142,7 +149,7 @@ const styles = StyleSheet.create({
     width: '47%',
     aspectRatio: 1,
     borderRadius: 20,
-    padding: 20,
+    padding: 40,
     marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',

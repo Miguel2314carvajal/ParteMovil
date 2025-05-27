@@ -188,7 +188,16 @@ export const productoService = {
   obtenerProductosBodeguero: async () => {
     const response = await api.get('/productosBodeguero');
     return response.data;
-  }
+  },
+
+  buscarPorCodigoBarras: async (codigoBarras: string) => {
+    try {
+      const response = await api.get(`/gt/listarProducto/${codigoBarras}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Error al buscar el producto' };
+    }
+  },
 };
 
 export const categoriaService = {
@@ -269,7 +278,16 @@ export const accesorioService = {
   obtenerAccesoriosBodeguero: async () => {
     const response = await api.get('/accesoriosBodeguero');
       return response.data;
-  }
+  },
+
+  buscarPorCodigoBarras: async (codigoBarras: string) => {
+    try {
+      const response = await api.get(`/gt/listarAccesorio/${codigoBarras}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Error al buscar el accesorio' };
+    }
+  },
 };
 
 export const visualizacionService = {
@@ -293,13 +311,21 @@ export const visualizacionService = {
 
 export const movimientoService = {
   obtenerMovimientoPorId: async (id: string) => {
-    const response = await api.get(`/listarMovimiento/${id}`);
+    const response = await api.get(`/gt/listarMovimiento/${id}`);
     return response.data;
   },
   obtenerMovimientosBodeguero: async () => {
     const response = await api.get('/movimientosBodeguero');
     return response.data;
-  }
+  },
+  buscarPorId: async (id: string) => {
+    try {
+      const response = await api.get(`/gt/listarMovimiento/${id}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Error al buscar el movimiento' };
+    }
+  },
 };
 
 export const stockService = {

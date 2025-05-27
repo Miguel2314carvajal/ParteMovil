@@ -57,9 +57,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="usuarios"
+        name="buscar"
         options={{
-          title: 'Usuarios',
+          title: 'Buscar por código o ID',
         }}
       />
     </Tabs>
