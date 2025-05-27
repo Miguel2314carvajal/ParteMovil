@@ -56,12 +56,6 @@ export default function TabLayout() {
           title: 'Registrar Dispositivos y Accesorios',
         }}
       />
-      <Tabs.Screen
-        name="buscar"
-        options={{
-          title: 'Buscar por código o ID',
-        }}
-      />
     </Tabs>
   );
 }

@@ -80,13 +80,6 @@ export default function HomeScreen() {
           route="/(tabs)/historial"
         />
       </View>
-      <View style={{ alignItems: 'center', marginTop: 0 }}>
-        <MenuCard
-          icon="search"
-          title="Buscar por código o ID"
-          route="/(tabs)/buscar"
-        />
-      </View>
     </ScrollView>
   );
 }
