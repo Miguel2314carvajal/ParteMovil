@@ -126,8 +126,9 @@ export default function MisProductosScreen() {
             <td>${p.capacidad || 'N/A'}</td>
             <td>1</td>
             <td>
-              <img src="data:image/png;base64,${base64}" style="width:120px; height:40px;" /><br/>
-              <span style="font-size:12px;">${p.codigoBarras}</span>
+              <div style="text-align:center;">
+                <img src="data:image/png;base64,${base64}" style="width:120px; height:40px;" />
+              </div>
             </td>
           </tr>
         `;

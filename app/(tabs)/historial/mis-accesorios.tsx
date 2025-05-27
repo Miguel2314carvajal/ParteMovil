@@ -119,8 +119,9 @@ export default function MisAccesoriosScreen() {
                   <td>${a.nombreAccs}</td>
                   <td>${a.cantidad || 1}</td>
                   <td>
-                    <img src="data:image/png;base64,${base64}" style="width:120px; height:40px;" /><br/>
-                    <span style="font-size:12px;">${a.codigoBarrasAccs}</span>
+                    <div style="text-align:center;">
+                      <img src="data:image/png;base64,${base64}" style="width:120px; height:40px;" />
+                    </div>
                   </td>
                 </tr>
               `;
