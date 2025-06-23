@@ -180,15 +180,6 @@ export const productoService = {
     }
   },
 
-
-  buscarPorCodigoBarras: async (codigoBarras: string) => {
-    try {
-      const response = await api.get(`/gt/listarProducto/${codigoBarras}`);
-      return response.data;
-    } catch (error: any) {
-      throw error.response?.data || { msg: 'Error al buscar el producto' };
-    }
-  },
 };
 
 export const categoriaService = {
@@ -202,15 +193,6 @@ export const categoriaService = {
       throw error.response?.data || { mensaje: 'Error al obtener las categorías' };
     }
   },
-
-  obtenerCategoriaPorId: async (id: string) => {
-    try {
-      const response = await api.get(`/gt/listarCategoria/${id}`);
-      return response.data;
-    } catch (error: any) {
-      throw error.response?.data || { mensaje: 'Error al obtener la categoría' };
-    }
-  }
 };
 
 export const accesorioService = {
@@ -266,14 +248,6 @@ export const accesorioService = {
     }
   },
 
-  buscarPorCodigoBarras: async (codigoBarras: string) => {
-    try {
-      const response = await api.get(`/gt/listarAccesorio/${codigoBarras}`);
-      return response.data;
-    } catch (error: any) {
-      throw error.response?.data || { msg: 'Error al buscar el accesorio' };
-    }
-  },
 };
 
 export const stockService = {
@@ -335,19 +309,6 @@ export const movimientoService = {
     }
   },
 
-  obtenerMovimientoPorId: async (id: string) => {
-    const response = await api.get(`/gt/listarMovimiento/${id}`);
-    return response.data;
-  },
-
-  buscarPorId: async (id: string) => {
-    try {
-      const response = await api.get(`/gt/listarMovimiento/${id}`);
-      return response.data;
-    } catch (error: any) {
-      throw error.response?.data || { msg: 'Error al buscar el movimiento' };
-    }
-  },
 };
 
 export const actualizarMovimiento = (id: string, nuevaObservacion: string) =>

@@ -101,7 +101,8 @@ export default function MisMovimientosScreen() {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedMovement, setSelectedMovement] = useState<Record<string, string>>({});
+  const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
+  const [selectedMovementDetails, setSelectedMovementDetails] = useState<Record<string, string>>({});
   const [fechaDesde, setFechaDesde] = useState<Date | undefined>();
   const [fechaHasta, setFechaHasta] = useState<Date | undefined>();
   const [showPicker, setShowPicker] = useState<'desde' | 'hasta' | null>(null);
@@ -118,6 +119,7 @@ export default function MisMovimientosScreen() {
       setMovements(data);
     } catch (error: any) {
       Alert.alert('Error', error.msg || 'Error al cargar los movimientos');
+      setMovements([]);
     } finally {
       setLoading(false);
     }
@@ -146,7 +148,8 @@ export default function MisMovimientosScreen() {
   };
 
   const handleVerDetalle = (movement: Movement) => {
-    setSelectedMovement({
+    setSelectedMovement(movement);
+    setSelectedMovementDetails({
       'Fecha': new Date(movement.fecha).toLocaleString(),
       'Responsable': movement.responsable?.[0]?.nombreResponsable || 'N/A',
       'De': movement.areaSalida,
@@ -156,6 +159,12 @@ export default function MisMovimientosScreen() {
       'Accesorios': (movement.accesorios || []).map(a => `${a.nombreAccs} (${a.codigoBarrasAccs})`).join('\n') || 'Ninguno',
     });
     setModalVisible(true);
+  };
+
+  const handleStartEdit = () => {
+    if (!selectedMovement) return;
+    setModalVisible(false); // Cierra el modal de detalles
+    handleEditObservation(selectedMovement);
   };
 
   const handleEditObservation = (movement: Movement) => {
@@ -246,68 +255,93 @@ export default function MisMovimientosScreen() {
   };
 
   const renderItem = ({ item }: { item: Movement }) => (
-    <TouchableOpacity style={styles.card} onPress={() => handleVerDetalle(item)}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>Movimiento</Text>
-        <Text style={styles.dateText}>{new Date(item.fecha).toLocaleDateString()}</Text>
-      </View>
-      <View style={styles.cardBody}>
-        <Text style={styles.detailText}><Text style={styles.detailLabel}>De:</Text> {item.areaSalida}</Text>
-        <Text style={styles.detailText}><Text style={styles.detailLabel}>A:</Text> {item.areaLlegada}</Text>
-        <Text style={styles.detailText}><Text style={styles.detailLabel}>Obs:</Text> {item.observacion}</Text>
+    <TouchableOpacity onPress={() => handleVerDetalle(item)} style={styles.movementCard}>
+      <View style={styles.cardContent}>
+        <View style={styles.movementInfo}>
+          <Text style={styles.date}>{new Date(item.fecha).toLocaleString()}</Text>
+          <Text style={styles.movementDetailText}><Text style={styles.label}>De:</Text> {item.areaSalida || 'N/A'}</Text>
+          <Text style={styles.movementDetailText}><Text style={styles.label}>A:</Text> {item.areaLlegada || 'N/A'}</Text>
+          
+          {(item.productos?.length > 0 || item.accesorios?.length > 0) &&
+            <View style={styles.countsContainer}>
+              {item.productos?.length > 0 && <Text style={styles.movementDetailText}><Text style={styles.label}>Productos:</Text> {item.productos.length}</Text>}
+              {item.accesorios?.length > 0 && <Text style={styles.movementDetailText}><Text style={styles.label}>Accesorios:</Text> {item.accesorios.length}</Text>}
+            </View>
+          }
+
+          <Text style={styles.observationText} numberOfLines={1}><Text style={styles.label}>Obs:</Text> {item.observacion || 'Sin observación'}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <View style={styles.controlsContainer}>
-        <View style={styles.dateFiltersContainer}>
-          <TouchableOpacity style={styles.datePickerInput} onPress={() => setShowPicker('desde')}>
-            <MaterialIcons name="date-range" size={20} color={Colors.light.text} />
-            <Text style={styles.datePickerText}>{fechaDesde ? fechaDesde.toLocaleDateString() : 'Desde'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.datePickerInput} onPress={() => setShowPicker('hasta')}>
-            <MaterialIcons name="date-range" size={20} color={Colors.light.text} />
-            <Text style={styles.datePickerText}>{fechaHasta ? fechaHasta.toLocaleDateString() : 'Hasta'}</Text>
-          </TouchableOpacity>
+      <View style={styles.controlsHeader}>
+        <View style={styles.filtrosContainer}>
+            <TouchableOpacity
+              style={styles.dateInput}
+              onPress={() => setShowPicker('desde')}
+            >
+              <MaterialIcons name="calendar-today" size={18} color={Colors.dark.text} style={{marginRight: 5}}/>
+              <Text style={styles.datePickerText}>
+                {fechaDesde ? fechaDesde.toLocaleDateString('es-ES') : 'Desde'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dateInput}
+              onPress={() => setShowPicker('hasta')}
+            >
+              <MaterialIcons name="calendar-today" size={18} color={Colors.dark.text} style={{marginRight: 5}}/>
+              <Text style={styles.datePickerText}>
+                {fechaHasta ? fechaHasta.toLocaleDateString('es-ES') : 'Hasta'}
+              </Text>
+            </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.exportButton} onPress={exportarPDF} disabled={loading}>
-          <MaterialIcons name="picture-as-pdf" size={20} color={Colors.light.buttonText} />
-          <Text style={styles.buttonText}>Exportar</Text>
+        <TouchableOpacity
+          style={styles.exportButton}
+          onPress={exportarPDF}
+          disabled={loading}
+        >
+          <MaterialIcons name="picture-as-pdf" size={20} color="#fff" />
+          <Text style={styles.exportButtonText}>Exportar</Text>
         </TouchableOpacity>
       </View>
-      
+
       {showPicker && (
         <DateTimePicker
-          value={(showPicker === 'desde' ? fechaDesde : fechaHasta) || new Date()}
+          value={
+            (showPicker === 'desde' && fechaDesde) ? fechaDesde :
+            (showPicker === 'hasta' && fechaHasta) ? fechaHasta :
+            new Date()
+          }
           mode="date"
-          display="default"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={handleDateChange}
         />
       )}
 
       {loading ? (
-        <ActivityIndicator size="large" color={Colors.light.text} style={{ marginTop: 50 }}/>
+        <ActivityIndicator size="large" color={Colors.dark.text} style={{ marginTop: 50 }}/>
       ) : (
         <FlatList
           data={movements}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          ListEmptyComponent={() => (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No hay movimientos registrados por ti.</Text>
-            </View>
-          )}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={() => 
+            !loading ? <Text style={{ textAlign: 'center', marginTop: 20 }}>No hay movimientos registrados por ti</Text> : null
+          }
         />
       )}
 
       <DetalleModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
+        details={selectedMovementDetails}
         title="Detalle del Movimiento"
-        details={selectedMovement}
+        onEdit={handleStartEdit}
       />
 
       <Modal
@@ -345,92 +379,102 @@ export default function MisMovimientosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#F5F5F5', // Fondo general más claro
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-  controlsContainer: {
+  controlsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  dateFiltersContainer: {
+  filtrosContainer: {
     flexDirection: 'row',
     flex: 1,
+    marginRight: 10,
   },
-  datePickerInput: {
+  dateInput: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.card,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: 12,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginRight: 8,
   },
   datePickerText: {
-    color: Colors.light.text,
-    marginLeft: 8,
+    color: '#000',
     fontSize: 14,
   },
   exportButton: {
     flexDirection: 'row',
-    backgroundColor: Colors.light.button,
-    paddingVertical: 10,
+    backgroundColor: '#000000',
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonText: {
-    color: Colors.light.buttonText,
+  exportButtonText: {
+    color: '#fff',
     fontWeight: 'bold',
+    marginLeft: 6,
     fontSize: 14,
-    marginLeft: 8,
   },
-  card: {
-    backgroundColor: Colors.light.card,
+  listContainer: {
+    paddingBottom: 20,
+  },
+  movementCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.20,
+    shadowRadius: 1.41,
+    elevation: 2,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  cardContent: {
+    flex: 1,
+  },
+  movementInfo: {
+    flex: 1,
+  },
+  date: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 8,
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.light.text,
+  countsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 4,
   },
-  dateText: {
+  movementDetailText: {
     fontSize: 14,
-    color: Colors.light.placeholder,
-  },
-  cardBody: {
-    marginTop: 4,
-  },
-  detailText: {
-    fontSize: 14,
-    color: Colors.light.text,
+    color: '#444',
     marginBottom: 2,
   },
-  detailLabel: {
-    fontWeight: 'bold',
+  label: {
+    fontWeight: '600',
+    color: '#000',
   },
-  emptyContainer: {
-    marginTop: 50,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: Colors.light.placeholder,
+  observationText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -453,26 +497,30 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
   input: {
-    backgroundColor: Colors.light.inputBackground,
-    borderColor: Colors.light.border,
+    backgroundColor: '#F5F5F5',
+    borderColor: '#E0E0E0',
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
-    minHeight: 60,
+    minHeight: 80,
     fontSize: 16,
-    marginBottom: 8,
-    color: Colors.light.text,
+    marginBottom: 16,
+    color: '#000',
+    textAlignVertical: 'top',
   },
   saveButton: {
-    backgroundColor: Colors.light.text,
+    backgroundColor: '#000',
     padding: 12,
     borderRadius: 8,
+    alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: Colors.light.card,
-    borderWidth: 1,
-    borderColor: Colors.light.text,
+    backgroundColor: '#E0E0E0',
     padding: 12,
     borderRadius: 8,
+    alignItems: 'center',
   },
+  buttonText:{
+    fontWeight: 'bold',
+  }
 }); 

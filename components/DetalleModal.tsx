@@ -7,9 +7,10 @@ interface DetalleModalProps {
   onClose: () => void;
   title: string;
   details: Record<string, string | number | null | undefined>;
+  onEdit?: () => void;
 }
 
-const DetalleModal: React.FC<DetalleModalProps> = ({ visible, onClose, title, details }) => {
+const DetalleModal: React.FC<DetalleModalProps> = ({ visible, onClose, title, details, onEdit }) => {
   const detailItems = Object.entries(details).filter(([, value]) => value || value === 0);
 
   return (
@@ -30,12 +31,22 @@ const DetalleModal: React.FC<DetalleModalProps> = ({ visible, onClose, title, de
               </View>
             ))}
           </ScrollView>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={onClose}
-          >
-            <Text style={styles.closeButtonText}>Cerrar</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.button, styles.closeButton]}
+              onPress={onClose}
+            >
+              <Text style={styles.closeButtonText}>Cerrar</Text>
+            </TouchableOpacity>
+            {onEdit && (
+              <TouchableOpacity
+                style={[styles.button, styles.editButton]}
+                onPress={onEdit}
+              >
+                <Text style={styles.editButtonText}>Editar</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
     </Modal>
@@ -99,13 +110,31 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: 'right',
   },
-  closeButton: {
-    backgroundColor: Colors.light.button,
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  button: {
+    flex: 1,
     borderRadius: 12,
     padding: 14,
     elevation: 2,
+    marginHorizontal: 5,
+  },
+  closeButton: {
+    backgroundColor: '#6c757d',
   },
   closeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  editButton: {
+    backgroundColor: Colors.light.button,
+  },
+  editButtonText: {
     color: Colors.light.buttonText,
     fontWeight: 'bold',
     textAlign: 'center',
