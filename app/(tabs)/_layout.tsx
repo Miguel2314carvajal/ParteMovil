@@ -1,6 +1,5 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 
 export default function TabLayout() {
@@ -35,25 +34,29 @@ export default function TabLayout() {
       <Tabs.Screen
         name="historial"
         options={{
-          title: 'Historial',
+          title: 'Historial', 
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="nuevo-movimiento"
         options={{
           title: 'Realizar Movimiento',
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="productos"
         options={{
           title: 'Stock Disponible',
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="nuevo-producto"
         options={{
           title: 'Registrar Dispositivos y Accesorios',
+          headerShown: false,
         }}
       />
     </Tabs>

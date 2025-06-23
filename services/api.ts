@@ -1,8 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Usar la IP de la máquina local
-const API_URL = 'http://192.168.100.155:3000';
+// Usar la URL del backend desplegado en Render
+const API_URL = 'https://backendinventario-8ryx.onrender.com';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -83,12 +83,8 @@ export const authService = {
   },
 
   logout: async () => {
-    try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-    } catch (error) {
-      console.error('Error during logout:', error);
-    }
+    await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('user');
   },
 
   getProfile: async () => {
@@ -185,11 +181,6 @@ export const productoService = {
   },
 
 
-  obtenerProductosBodeguero: async () => {
-    const response = await api.get('/productosBodeguero');
-    return response.data;
-  },
-
   buscarPorCodigoBarras: async (codigoBarras: string) => {
     try {
       const response = await api.get(`/gt/listarProducto/${codigoBarras}`);
@@ -275,11 +266,6 @@ export const accesorioService = {
     }
   },
 
-  obtenerAccesoriosBodeguero: async () => {
-    const response = await api.get('/accesoriosBodeguero');
-      return response.data;
-  },
-
   buscarPorCodigoBarras: async (codigoBarras: string) => {
     try {
       const response = await api.get(`/gt/listarAccesorio/${codigoBarras}`);
@@ -288,6 +274,27 @@ export const accesorioService = {
       throw error.response?.data || { msg: 'Error al buscar el accesorio' };
     }
   },
+};
+
+export const stockService = {
+  obtenerStockDisponible: async (filtros?: {
+    nombre?: string;
+    capacidad?: string;
+    categoria?: string;
+  }) => {
+    const response = await api.get('gt/stockDisponible', { params: filtros });
+    return response.data;
+  },
+
+  buscarProductoPorCodigo: async (codigo: string) => {
+    const response = await api.get(`/gt/listarProducto/${codigo}`);
+    return response.data.producto;
+  },
+
+  buscarAccesorioPorCodigo: async (codigo: string) => {
+    const response = await api.get(`/gt/listarAccesorio/${codigo}`);
+    return response.data.accesorio;
+  }
 };
 
 export const visualizacionService = {
@@ -310,14 +317,29 @@ export const visualizacionService = {
 };
 
 export const movimientoService = {
+  obtenerAreasUnicas: async () => {
+    try {
+      const response = await api.get('/gt/areasunicas');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Error al obtener las áreas' };
+    }
+  },
+  
+  registrarMovimiento: async (movimientoData: any) => {
+    try {
+      const response = await api.post('/gt/registrarMovimiento', movimientoData);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Error al registrar el movimiento' };
+    }
+  },
+
   obtenerMovimientoPorId: async (id: string) => {
     const response = await api.get(`/gt/listarMovimiento/${id}`);
     return response.data;
   },
-  obtenerMovimientosBodeguero: async () => {
-    const response = await api.get('/movimientosBodeguero');
-    return response.data;
-  },
+
   buscarPorId: async (id: string) => {
     try {
       const response = await api.get(`/gt/listarMovimiento/${id}`);
@@ -328,18 +350,17 @@ export const movimientoService = {
   },
 };
 
-export const stockService = {
-  obtenerStockDisponible: async (filtros?: {
-    nombre?: string;
-    capacidad?: string;
-    categoria?: string;
-  }) => {
-    const response = await api.get('gt/stockDisponible', { params: filtros });
+export const actualizarMovimiento = (id: string, nuevaObservacion: string) =>
+  api.put(`/gt/actualizarMovimiento/${id}`, { observacion: nuevaObservacion });
+
+export const ventaService = {
+  obtenerVentasPorFechas: async (desde?: string, hasta?: string) => {
+    const params = new URLSearchParams();
+    if (desde) params.append('desde', desde);
+    if (hasta) params.append('hasta', hasta);
+    const response = await api.get('/gt/ventas', { params });
     return response.data;
   }
 };
-
-export const actualizarMovimiento = (id: string, nuevaObservacion: string) =>
-  api.put(`/gt/actualizarMovimiento/${id}`, { observacion: nuevaObservacion });
 
 export default api; 

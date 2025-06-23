@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
   Modal,
   ScrollView,
   Platform,
-  Button
+  Button,
+  ActivityIndicator
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import api from '../../../services/api';
@@ -18,6 +19,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 // @ts-ignore
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import * as Sharing from 'expo-sharing';
+import { Colors } from '@/constants/Colors';
+import DetalleModal from '../../../components/DetalleModal';
+import { useFocusEffect } from '@react-navigation/native';
 
 // Interfaz real de movimientos según la respuesta del backend
 interface Movement {
@@ -95,64 +99,62 @@ const obtenerMisMovimientos = async (searchQuery: string, fechaDesde: string, fe
 export default function MisMovimientosScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [movements, setMovements] = useState<Movement[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
-  const [fechaDesde, setFechaDesde] = useState('');
-  const [fechaHasta, setFechaHasta] = useState('');
-  const [showDesdePicker, setShowDesdePicker] = useState(false);
-  const [showHastaPicker, setShowHastaPicker] = useState(false);
+  const [selectedMovement, setSelectedMovement] = useState<Record<string, string>>({});
+  const [fechaDesde, setFechaDesde] = useState<Date | undefined>();
+  const [fechaHasta, setFechaHasta] = useState<Date | undefined>();
+  const [showPicker, setShowPicker] = useState<'desde' | 'hasta' | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editObservation, setEditObservation] = useState('');
   const [editMovementId, setEditMovementId] = useState<string | null>(null);
 
-  // Cargar datos al montar el componente y cuando cambie la búsqueda o los filtros de fecha
-  useEffect(() => {
-    const fetchMovements = async () => {
-      setLoading(true);
-      try {
-        const data = await obtenerMisMovimientos(searchQuery, fechaDesde, fechaHasta);
-        
-        setMovements(data);
-      } catch (error: any) {
-        Alert.alert('Error', error.msg || 'Error al cargar mis movimientos');
-        setMovements([]); // Limpiar lista en caso de error
-      } finally {
-        setLoading(false);
+  const fetchMovements = async (desde?: Date, hasta?: Date) => {
+    setLoading(true);
+    try {
+      const desdeISO = desde ? desde.toISOString().split('T')[0] : '';
+      const hastaISO = hasta ? hasta.toISOString().split('T')[0] : '';
+      const data = await obtenerMisMovimientos(searchQuery, desdeISO, hastaISO);
+      setMovements(data);
+    } catch (error: any) {
+      Alert.alert('Error', error.msg || 'Error al cargar los movimientos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      setFechaDesde(undefined);
+      setFechaHasta(undefined);
+      fetchMovements();
+    }, [])
+  );
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || (showPicker === 'desde' ? fechaDesde : fechaHasta);
+    setShowPicker(null);
+    if (currentDate) {
+      if (showPicker === 'desde') {
+        setFechaDesde(currentDate);
+        fetchMovements(currentDate, fechaHasta);
+      } else if (showPicker === 'hasta') {
+        setFechaHasta(currentDate);
+        fetchMovements(fechaDesde, currentDate);
       }
-    };
-    fetchMovements();
-  }, [searchQuery, fechaDesde, fechaHasta]); // Dependencia en searchQuery y fechas para recargar al cambiar
+    }
+  };
 
-  // // --- Código mockeado anterior (comentado) ---
-  // const mockMovementsForRender: Movement[] = [
-  //   {
-  //     _id: '1',
-  //     productName: 'Producto A (Mock)',
-  //     type: 'entrada',
-  //     quantity: 10,
-  //     date: '2024-03-20',
-  //   },
-  //   {
-  //     _id: '2',
-  //     productName: 'Accesorio B (Mock)',
-  //     type: 'salida',
-  //     quantity: 5,
-  //     date: '2024-03-20',
-  //   },
-  //   {
-  //     _id: '3',
-  //     productName: 'Producto C (Mock)',
-  //     type: 'entrada',
-  //     quantity: 15,
-  //     date: '2024-03-19',
-  //   },
-  // ];
-  // // --- Fin código mockeado anterior ---
-
-  // Función para abrir el modal de detalle
   const handleVerDetalle = (movement: Movement) => {
-    setSelectedMovement(movement);
+    setSelectedMovement({
+      'Fecha': new Date(movement.fecha).toLocaleString(),
+      'Responsable': movement.responsable?.[0]?.nombreResponsable || 'N/A',
+      'De': movement.areaSalida,
+      'A': movement.areaLlegada,
+      'Observación': movement.observacion,
+      'Productos': (movement.productos || []).map(p => `${p.nombreEquipo} (${p.codigoBarras})`).join('\n') || 'Ninguno',
+      'Accesorios': (movement.accesorios || []).map(a => `${a.nombreAccs} (${a.codigoBarrasAccs})`).join('\n') || 'Ninguno',
+    });
     setModalVisible(true);
   };
 
@@ -170,7 +172,7 @@ export default function MisMovimientosScreen() {
       setEditMovementId(null);
       setEditObservation('');
       // Refrescar la lista
-      const data = await obtenerMisMovimientos(searchQuery, fechaDesde, fechaHasta);
+      const data = await obtenerMisMovimientos(searchQuery, fechaDesde?.toISOString().split('T')[0] || '', fechaHasta?.toISOString().split('T')[0] || '');
       setMovements(data);
       Alert.alert('Éxito', 'Observación actualizada correctamente');
     } catch (error: any) {
@@ -178,56 +180,46 @@ export default function MisMovimientosScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: Movement }) => (
-    <View style={styles.movementCard}>
-      <TouchableOpacity onPress={() => handleVerDetalle(item)} style={{ flex: 1 }}>
-        <View style={styles.movementInfo}>
-          <Text style={styles.date}>{new Date(item.fecha).toLocaleString()}</Text>
-          <Text style={styles.movementDetailText}>De: {item.areaSalida || 'N/A'}</Text>
-          <Text style={styles.movementDetailText}>A: {item.areaLlegada || 'N/A'}</Text>
-          {item.productos && item.productos.length > 0 && (
-            <Text style={styles.movementDetailText}>Productos: {item.productos.length}</Text>
-          )}
-          {item.accesorios && item.accesorios.length > 0 && (
-            <Text style={styles.movementDetailText}>Accesorios: {item.accesorios.length}</Text>
-          )}
-          <Text style={styles.observationText}>Obs: {item.observacion || 'Sin observación'}</Text>
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => handleEditObservation(item)} style={styles.editButton}>
-        <MaterialIcons name="edit" size={24} color="#007AFF" />
-      </TouchableOpacity>
-    </View>
-  );
-
   const exportarPDF = async () => {
+    setLoading(true);
     try {
       const htmlContent = `
-        <h1>Historial de Movimientos</h1>
-        <table border="1" style="width:100%; border-collapse: collapse;">
-          <tr>
-            <th>Fecha</th>
-            <th>Responsable</th>
-            <th>Área Salida</th>
-            <th>Área Llegada</th>
-            <th>Productos</th>
-            <th>Accesorios</th>
-          </tr>
-          ${movements.map(mov => `
-            <tr>
-              <td>${new Date(mov.fecha).toLocaleString()}</td>
-              <td>${mov.responsable?.[0]?.nombreResponsable || ''}</td>
-              <td>${mov.areaSalida}</td>
-              <td>${mov.areaLlegada}</td>
-              <td>
-                ${(mov.productos || []).map(p => `${p.nombreEquipo} (${p.codigoBarras})`).join('<br/>')}
-              </td>
-              <td>
-                ${(mov.accesorios || []).map(a => `${a.nombreAccs} (${a.codigoBarrasAccs})`).join('<br/>')}
-              </td>
-            </tr>
-          `).join('')}
-        </table>
+        <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              h1 { text-align: center; }
+              table { width: 100%; border-collapse: collapse; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+            </style>
+          </head>
+          <body>
+            <h1>Historial de Movimientos</h1>
+            <table>
+              <tr>
+                <th>Fecha</th>
+                <th>Responsable</th>
+                <th>Área Salida</th>
+                <th>Área Llegada</th>
+                <th>Observación</th>
+                <th>Productos</th>
+                <th>Accesorios</th>
+              </tr>
+              ${movements.map(mov => `
+                <tr>
+                  <td>${new Date(mov.fecha).toLocaleString()}</td>
+                  <td>${mov.responsable?.[0]?.nombreResponsable || ''}</td>
+                  <td>${mov.areaSalida}</td>
+                  <td>${mov.areaLlegada}</td>
+                  <td>${mov.observacion}</td>
+                  <td>${(mov.productos || []).map(p => `${p.nombreEquipo} (${p.codigoBarras})`).join('<br/>')}</td>
+                  <td>${(mov.accesorios || []).map(a => `${a.nombreAccs} (${a.codigoBarrasAccs})`).join('<br/>')}</td>
+                </tr>
+              `).join('')}
+            </table>
+          </body>
+        </html>
       `;
 
       const options = {
@@ -237,158 +229,86 @@ export default function MisMovimientosScreen() {
       };
 
       const file = await RNHTMLtoPDF.convert(options);
-      console.log('PDF generado en:', file.filePath);
+      console.log('Respuesta de creación de PDF:', JSON.stringify(file, null, 2));
 
-      const filePath = file.filePath.startsWith('file://') ? file.filePath : 'file://' + file.filePath;
-      await Sharing.shareAsync(filePath);
-      console.log('Compartir dialogo abierto');
-    } catch (error) {
-      console.error('Error al exportar PDF:', error);
-      Alert.alert('Error', 'No se pudo exportar el PDF');
+      if (file.filePath) {
+        const filePath = file.filePath.startsWith('file://') ? file.filePath : `file://${file.filePath}`;
+        await Sharing.shareAsync(filePath);
+      } else {
+        throw new Error('La creación del PDF no devolvió una ruta de archivo válida.');
+      }
+    } catch (error: any) {
+      console.error("Error detallado al exportar PDF:", error);
+      Alert.alert('Error', `No se pudo exportar el PDF: ${error.message || 'Error desconocido'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const renderItem = ({ item }: { item: Movement }) => (
+    <TouchableOpacity style={styles.card} onPress={() => handleVerDetalle(item)}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>Movimiento</Text>
+        <Text style={styles.dateText}>{new Date(item.fecha).toLocaleDateString()}</Text>
+      </View>
+      <View style={styles.cardBody}>
+        <Text style={styles.detailText}><Text style={styles.detailLabel}>De:</Text> {item.areaSalida}</Text>
+        <Text style={styles.detailText}><Text style={styles.detailLabel}>A:</Text> {item.areaLlegada}</Text>
+        <Text style={styles.detailText}><Text style={styles.detailLabel}>Obs:</Text> {item.observacion}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
-      {/* Botón de Exportar PDF con icono (nuevo diseño) */}
-      <TouchableOpacity
-        style={styles.exportButton}
-        onPress={exportarPDF}
-      >
-        <MaterialIcons name="picture-as-pdf" size={20} color="#fff" />
-        <Text style={styles.exportButtonText}>Exportar a PDF</Text>
-      </TouchableOpacity>
-
-      {/* Filtros de fecha unificados */}
-      <View style={styles.filtrosContainer}>
-        <View style={styles.dateInputsContainer}>
-          {/* Fecha Desde */}
-          <TouchableOpacity
-            style={styles.dateInput}
-            onPress={() => setShowDesdePicker(true)}
-          >
-            <Text style={{ color: fechaDesde ? '#000' : '#888', fontSize: 16 }}>
-              {fechaDesde ? fechaDesde : 'Desde'}
-            </Text>
+      <View style={styles.controlsContainer}>
+        <View style={styles.dateFiltersContainer}>
+          <TouchableOpacity style={styles.datePickerInput} onPress={() => setShowPicker('desde')}>
+            <MaterialIcons name="date-range" size={20} color={Colors.light.text} />
+            <Text style={styles.datePickerText}>{fechaDesde ? fechaDesde.toLocaleDateString() : 'Desde'}</Text>
           </TouchableOpacity>
-          {showDesdePicker && (
-            <DateTimePicker
-              value={fechaDesde ? new Date(fechaDesde + 'T00:00:00') : new Date()}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(event, selectedDate) => {
-                setShowDesdePicker(false);
-                if (selectedDate) {
-                  const year = selectedDate.getFullYear();
-                  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                  const day = String(selectedDate.getDate()).padStart(2, '0');
-                  const fecha = `${year}-${month}-${day}`;
-                  setFechaDesde(fecha);
-                }
-              }}
-            />
-          )}
-
-          {/* Fecha Hasta */}
-          <TouchableOpacity
-            style={styles.dateInput}
-            onPress={() => setShowHastaPicker(true)}
-          >
-            <Text style={{ color: fechaHasta ? '#000' : '#888', fontSize: 16 }}>
-              {fechaHasta ? fechaHasta : 'Hasta'}
-            </Text>
+          <TouchableOpacity style={styles.datePickerInput} onPress={() => setShowPicker('hasta')}>
+            <MaterialIcons name="date-range" size={20} color={Colors.light.text} />
+            <Text style={styles.datePickerText}>{fechaHasta ? fechaHasta.toLocaleDateString() : 'Hasta'}</Text>
           </TouchableOpacity>
-          {showHastaPicker && (
-            <DateTimePicker
-              value={fechaHasta ? new Date(fechaHasta + 'T00:00:00') : new Date()}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(event, selectedDate) => {
-                setShowHastaPicker(false);
-                if (selectedDate) {
-                  const year = selectedDate.getFullYear();
-                  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                  const day = String(selectedDate.getDate()).padStart(2, '0');
-                  const fecha = `${year}-${month}-${day}`;
-                  setFechaHasta(fecha);
-                }
-              }}
-            />
-          )}
         </View>
+        <TouchableOpacity style={styles.exportButton} onPress={exportarPDF} disabled={loading}>
+          <MaterialIcons name="picture-as-pdf" size={20} color={Colors.light.buttonText} />
+          <Text style={styles.buttonText}>Exportar</Text>
+        </TouchableOpacity>
       </View>
+      
+      {showPicker && (
+        <DateTimePicker
+          value={(showPicker === 'desde' ? fechaDesde : fechaHasta) || new Date()}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+        />
+      )}
 
-      <FlatList
-        data={movements} // Usando los datos del estado cargados de la API
-        renderItem={renderItem}
-        keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={() => 
-          !loading ? <Text style={{ textAlign: 'center', marginTop: 20 }}>No hay movimientos registrados por ti</Text> : null
-        }
-        // TODO: Implementar lógica de loading indicator si es necesario
-        // refreshing={loading}
-        // onRefresh={fetchMovements} // Permite recargar al tirar hacia abajo
-      />
-      {/* TODO: Mostrar un indicador de carga (ActivityIndicator) si loading es true */}
+      {loading ? (
+        <ActivityIndicator size="large" color={Colors.light.text} style={{ marginTop: 50 }}/>
+      ) : (
+        <FlatList
+          data={movements}
+          renderItem={renderItem}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No hay movimientos registrados por ti.</Text>
+            </View>
+          )}
+        />
+      )}
 
-      {/* Modal para mostrar los detalles del movimiento */}
-      <Modal
+      <DetalleModal
         visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Detalle del Movimiento</Text>
-            {selectedMovement && (
-              <ScrollView>
-                {/* Aquí se mostrarán los detalles del movimiento seleccionado */}
-                <Text>Fecha: {new Date(selectedMovement.fecha).toLocaleString()}</Text>
-                <Text>Responsable: {selectedMovement.responsable?.[0]?.nombreResponsable || 'N/A'}</Text>
-                <Text>Área de Salida: {selectedMovement.areaSalida || 'N/A'}</Text>
-                <Text>Área Llegada: {selectedMovement.areaLlegada || 'N/A'}</Text>
-
-                {/* Lista de Productos en el movimiento */}
-                {selectedMovement.productos && selectedMovement.productos.length > 0 && (
-                  <View style={styles.detailSection}>
-                    <Text style={styles.sectionTitle}>Productos</Text>
-                    {selectedMovement.productos.map((producto, index) => (
-                      <View key={index} style={styles.detailRow}>
-                        {/* Ajustar según los campos disponibles en el objeto producto anidado */}
-                        <Text style={styles.detailText}>- {producto.nombreEquipo || 'Producto sin nombre'} ({producto.codigoBarras || 'Sin Código'})</Text>
-                         {/* TODO: Agregar otros detalles como cantidad si vienen en el objeto anidado */}
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {/* Lista de Accesorios en el movimiento */}
-                 {selectedMovement.accesorios && selectedMovement.accesorios.length > 0 && (
-                  <View style={styles.detailSection}>
-                    <Text style={styles.sectionTitle}>Accesorios</Text>
-                    {selectedMovement.accesorios.map((accesorio, index) => (
-                      <View key={index} style={styles.detailRow}>
-                        {/* Ajustar según los campos disponibles en el objeto accesorio anidado */}
-                        <Text style={styles.detailText}>- {accesorio.nombreAccs || 'Accesorio sin nombre'} ({accesorio.codigoBarrasAccs || 'Sin Código'})</Text>
-                        {/* TODO: Agregar otros detalles como cantidad si vienen en el objeto anidado */}
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {/* TODO: Mostrar otros detalles del movimiento si es necesario */}
-
-              </ScrollView>
-            )}
-            {/* Botón para cerrar el modal */}
-            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Cerrar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setModalVisible(false)}
+        title="Detalle del Movimiento"
+        details={selectedMovement}
+      />
 
       <Modal
         visible={editModalVisible}
@@ -425,91 +345,92 @@ export default function MisMovimientosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.light.background,
     paddingHorizontal: 16,
-    paddingTop: 16, // Ajustado para añadir espacio arriba
+    paddingTop: 16,
   },
-  filtrosContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
+  controlsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dateFiltersContainer: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  datePickerInput: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.light.card,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginRight: 8,
+  },
+  datePickerText: {
+    color: Colors.light.text,
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  exportButton: {
+    flexDirection: 'row',
+    backgroundColor: Colors.light.button,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: Colors.light.buttonText,
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  card: {
+    backgroundColor: Colors.light.card,
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-    marginTop: 12, // Agregado para separar del borde superior
+    borderWidth: 1,
+    borderColor: Colors.light.border,
   },
-  dateInputsContainer: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  dateInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    padding: 8,
-    backgroundColor: '#fff',
-    height: 40,
-    flex: 1,
-    marginRight: 8,
-  },
-  movementCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  movementInfo: {
-    flex: 1,
-    marginBottom: 8, // Espacio entre info y observación/cantidad
-  },
-  productName: { // Este estilo ya no se usará para el nombre principal
+  cardTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: 'bold',
+    color: Colors.light.text,
   },
-  date: {
+  dateText: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 4, // Espacio debajo de la fecha
+    color: Colors.light.placeholder,
   },
-   movementDetailText: {
+  cardBody: {
+    marginTop: 4,
+  },
+  detailText: {
     fontSize: 14,
-    color: '#333',
+    color: Colors.light.text,
     marginBottom: 2,
   },
-  observationText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: '#555',
-    marginTop: 4, // Espacio encima de la observación
+  detailLabel: {
+    fontWeight: 'bold',
   },
-  movementQuantity: { // Este estilo probablemente ya no sea necesario
-    // flexDirection: 'row',
-    // alignItems: 'center',
-    // paddingHorizontal: 12,
-    // paddingVertical: 8,
-    // borderRadius: 8,
+  emptyContainer: {
+    marginTop: 50,
+    alignItems: 'center',
   },
-  quantityText: { // Este estilo probablemente ya no sea necesario
-    // marginLeft: 4,
-    // fontWeight: 'bold',
-    // fontSize: 16,
-  },
-  listContainer: {
-    padding: 10,
+  emptyText: {
+    fontSize: 16,
+    color: Colors.light.placeholder,
   },
   modalOverlay: {
     flex: 1,
@@ -518,7 +439,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: Colors.light.card,
     borderRadius: 12,
     padding: 24,
     width: '90%',
@@ -529,75 +450,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
     textAlign: 'center',
-  },
-   detailSection: {
-    marginTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  detailRow: {
-    marginBottom: 4,
-  },
-  detailText: {
-    fontSize: 16,
-  },
-  closeButton: {
-    marginTop: 20,
-    alignSelf: 'center',
-    padding: 10,
-  },
-  closeButtonText: {
-    color: '#007AFF',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  exportButton: {
-    flexDirection: 'row',
-    backgroundColor: '#007AFF',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    alignItems: 'center',
-    alignSelf: 'flex-start', // Para que no ocupe todo el ancho
-    marginBottom: 10,
-  },
-  exportButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    marginLeft: 6,
-    fontSize: 15,
-  },
-  editButton: {
-    padding: 8,
-    alignSelf: 'center',
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
-  },
-  cancelButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
+    color: Colors.light.text,
   },
   input: {
-    backgroundColor: '#fff',
-    borderColor: '#ccc',
+    backgroundColor: Colors.light.inputBackground,
+    borderColor: Colors.light.border,
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
     minHeight: 60,
     fontSize: 16,
     marginBottom: 8,
-    color: '#222'
+    color: Colors.light.text,
+  },
+  saveButton: {
+    backgroundColor: Colors.light.text,
+    padding: 12,
+    borderRadius: 8,
+  },
+  cancelButton: {
+    backgroundColor: Colors.light.card,
+    borderWidth: 1,
+    borderColor: Colors.light.text,
+    padding: 12,
+    borderRadius: 8,
   },
 }); 

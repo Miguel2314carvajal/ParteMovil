@@ -19,6 +19,8 @@ import CapacidadSelector from './CapacidadSelector';
 import TipoSelector from './TipoSelector';
 import { useFocusEffect } from '@react-navigation/native';
 import { categoriaService } from '../services/api';
+import { Colors } from '@/constants/Colors';
+import DetalleModal from './DetalleModal';
 
 interface ProductFormData {
   codigoModelo: string;
@@ -52,6 +54,9 @@ export default function ProductoForm() {
   const [busqueda, setBusqueda] = useState('');
   const [resultadoBusqueda, setResultadoBusqueda] = useState<any | null>(null);
   const [buscando, setBuscando] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalDetails, setModalDetails] = useState<Record<string, string | number | null | undefined>>({});
 
   const [formData, setFormData] = useState<ProductFormData>({
     codigoModelo: '',
@@ -318,11 +323,10 @@ export default function ProductoForm() {
 
   const handleVer = async (codigoBarras: string) => {
     try {
-      console.log('Buscando accesorio con código:', codigoBarras);
+      console.log('Buscando con código:', codigoBarras);
       if (tipoProducto === 'dispositivos') {
         const res = await productoService.obtenerProductoPorCodigo(codigoBarras);
         if (res.producto) {
-          // Extraer categoría (puede ser array)
           let categoria = '';
           if (Array.isArray(res.producto.categoriaNombre) && res.producto.categoriaNombre.length > 0) {
             categoria = res.producto.categoriaNombre[0].nombreCategoria || '';
@@ -331,8 +335,6 @@ export default function ProductoForm() {
           } else if (res.producto.categoria && typeof res.producto.categoria === 'string') {
             categoria = res.producto.categoria;
           }
-
-          // Extraer responsable (puede ser array)
           let responsable = '';
           if (Array.isArray(res.producto.responsable) && res.producto.responsable.length > 0) {
             responsable = res.producto.responsable[0].nombre || '';
@@ -340,27 +342,27 @@ export default function ProductoForm() {
             responsable = res.producto.responsable;
           }
 
-          Alert.alert(
-            'Detalle del dispositivo',
-            `Código de Barras: ${res.producto.codigoBarras}\n` +
-            `Código de Modelo: ${res.producto.codigoModelo}\n` +
-            `Código Serial: ${res.producto.codigoSerial}\n` +
-            `Nombre: ${res.producto.nombreEquipo}\n` +
-            `Color: ${res.producto.color}\n` +
-            `Capacidad: ${res.producto.capacidad}\n` +
-            `Precio: ${res.producto.precio}\n` +
-            `Tipo: ${res.producto.tipo}\n` +
-            `Estado: ${res.producto.estado || ''}\n` +
-            `Categoría: ${categoria}\n` +
-            `Responsable: ${responsable}\n` +
-            `Locación: ${res.producto.locacion || ''}\n` +
-            `Fecha Ingreso: ${res.producto.fechaIngreso ? new Date(res.producto.fechaIngreso).toLocaleString() : ''}`
-          );
+          setModalTitle('Detalle del Dispositivo');
+          setModalDetails({
+            'Código de Barras': res.producto.codigoBarras,
+            'Código de Modelo': res.producto.codigoModelo,
+            'Código Serial': res.producto.codigoSerial,
+            'Nombre': res.producto.nombreEquipo,
+            'Color': res.producto.color,
+            'Capacidad': res.producto.capacidad,
+            'Precio': res.producto.precio,
+            'Tipo': res.producto.tipo,
+            'Estado': res.producto.estado || '',
+            'Categoría': categoria,
+            'Responsable': responsable,
+            'Locación': res.producto.locacion || '',
+            'Fecha Ingreso': res.producto.fechaIngreso ? new Date(res.producto.fechaIngreso).toLocaleString() : ''
+          });
+          setModalVisible(true);
         }
       } else {
         const res = await accesorioService.obtenerAccesorioPorCodigo(codigoBarras);
         if (res.accesorio) {
-          // Extraer responsable (puede ser array)
           let responsable = '';
           if (Array.isArray(res.accesorio.responsableAccs) && res.accesorio.responsableAccs.length > 0) {
             responsable = res.accesorio.responsableAccs[0].nombre || '';
@@ -368,22 +370,23 @@ export default function ProductoForm() {
             responsable = res.accesorio.responsableAccs;
           }
 
-          Alert.alert(
-            'Detalle del accesorio',
-            `Código de Barras: ${res.accesorio.codigoBarrasAccs}\n` +
-            `Código de Modelo: ${res.accesorio.codigoModeloAccs}\n` +
-            `Nombre: ${res.accesorio.nombreAccs}\n` +
-            `Precio: ${res.accesorio.precioAccs}\n` +
-            `Disponibilidad: ${res.accesorio.disponibilidadAccs}\n` +
-            `Categoría: ${res.accesorio.categoriaNombre && Array.isArray(res.accesorio.categoriaNombre) && res.accesorio.categoriaNombre.length > 0 ? res.accesorio.categoriaNombre[0].nombreCategoria : (res.accesorio.categoriaNombre?.nombreCategoria || '')}\n` +
-            `Locación: ${res.accesorio.locacionAccs}\n` +
-            `Responsable: ${responsable}\n` +
-            `Fecha Ingreso: ${res.accesorio.fechaIngreso ? new Date(res.accesorio.fechaIngreso).toLocaleString() : ''}`
-          );
+          setModalTitle('Detalle del Accesorio');
+          setModalDetails({
+            'Código de Barras': res.accesorio.codigoBarrasAccs,
+            'Código de Modelo': res.accesorio.codigoModeloAccs,
+            'Nombre': res.accesorio.nombreAccs,
+            'Precio': res.accesorio.precioAccs,
+            'Disponibilidad': res.accesorio.disponibilidadAccs,
+            'Categoría': res.accesorio.categoriaNombre && Array.isArray(res.accesorio.categoriaNombre) && res.accesorio.categoriaNombre.length > 0 ? res.accesorio.categoriaNombre[0].nombreCategoria : (res.accesorio.categoriaNombre?.nombreCategoria || ''),
+            'Locación': res.accesorio.locacionAccs,
+            'Responsable': responsable,
+            'Fecha Ingreso': res.accesorio.fechaIngreso ? new Date(res.accesorio.fechaIngreso).toLocaleString() : ''
+          });
+          setModalVisible(true);
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar los datos para visualizar');
+       Alert.alert('Error', 'No se pudieron cargar los datos para visualizar');
     }
   };
 
@@ -513,6 +516,12 @@ export default function ProductoForm() {
 
   return (
     <View style={{ flex: 1 }}>
+      <DetalleModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        title={modalTitle}
+        details={modalDetails}
+      />
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
       <View style={styles.form}>
         <TipoProductoSelector
@@ -540,10 +549,10 @@ export default function ProductoForm() {
                         </View>
                         <View style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                           <TouchableOpacity style={styles.editButton} onPress={() => handleEditar(p)}>
-                            <MaterialIcons name="edit" size={24} color="#007AFF" />
+                            <MaterialIcons name="edit" size={24} color={Colors.light.icon} />
                           </TouchableOpacity>
                           <TouchableOpacity style={styles.editButton} onPress={() => handleVer(p)}>
-                            <MaterialIcons name="visibility" size={24} color="#007AFF" />
+                            <MaterialIcons name="visibility" size={24} color={Colors.light.icon} />
                           </TouchableOpacity>
                         </View>
                 </View>
@@ -561,10 +570,10 @@ export default function ProductoForm() {
                         </View>
                         <View style={{ flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                           <TouchableOpacity style={styles.editButton} onPress={() => handleEditar(a)}>
-                            <MaterialIcons name="edit" size={24} color="#007AFF" />
+                            <MaterialIcons name="edit" size={24} color={Colors.light.icon} />
                           </TouchableOpacity>
                           <TouchableOpacity style={styles.editButton} onPress={() => handleVer(a)}>
-                            <MaterialIcons name="visibility" size={24} color="#007AFF" />
+                            <MaterialIcons name="visibility" size={24} color={Colors.light.icon} />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -584,7 +593,7 @@ export default function ProductoForm() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.submitButton, { backgroundColor: '#aaa', marginTop: 10 }]}
+                style={styles.cancelButton}
                 onPress={() => {
                   setMostrarFormulario(false);
                   setCodigoBarrasDispositivo(null);
@@ -606,7 +615,7 @@ export default function ProductoForm() {
                   });
                 }}
               >
-                <Text style={styles.submitButtonText}>Cancelar</Text>
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
           </>
         )}
@@ -646,17 +655,18 @@ export default function ProductoForm() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.light.background,
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: Colors.light.background,
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: Colors.light.border,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: Colors.light.text,
   },
   form: {
     padding: 20,
@@ -668,39 +678,62 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     marginBottom: 8,
-    color: '#333',
+    color: Colors.light.text,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: Colors.light.card,
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: Colors.light.border,
+    color: Colors.light.text,
   },
   submitButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: Colors.light.button,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 20,
   },
   submitButtonText: {
-    color: '#fff',
+    color: Colors.light.buttonText,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cancelButton: {
+    backgroundColor: Colors.light.card,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  cancelButtonText: {
+    color: Colors.light.text,
     fontSize: 16,
     fontWeight: 'bold',
   },
   codigosListaContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: Colors.light.card,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
   },
   codigosListaTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: 'bold',
     marginBottom: 16,
-    color: '#333',
+    color: Colors.light.text,
   },
   codigoItem: {
     flexDirection: 'row',
@@ -736,24 +769,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    padding: 16,
+    backgroundColor: Colors.light.background,
+    padding: 20,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: Colors.light.border,
   },
   fixedAddButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: Colors.light.button,
     borderRadius: 12,
     paddingVertical: 16,
-    paddingHorizontal: 32,
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
   },
   fixedAddButtonText: {
-    color: '#fff',
+    color: Colors.light.buttonText,
     fontSize: 18,
     fontWeight: 'bold',
   },

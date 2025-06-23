@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
-import { Button, TextInput, Text, Card } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Text, TextInput, ActivityIndicator, Modal } from 'react-native';
 import EscanerCodigoBarras from './EscanerCodigoBarras';
-import api from '../services/api';
+import { stockService, movimientoService } from '../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
 import SimpleSelector from './SimpleSelector';
+import { Colors } from '@/constants/Colors';
 
 interface Producto {
   codigoBarras: string;
@@ -31,14 +31,8 @@ export default function MovimientoForm() {
 
   const cargarAreas = async () => {
     try {
-      const response = await api.get('/gt/areasunicas');
-      const formattedAreas = response.data.map((area: string | { nombreArea: string, _id: string }) => {
-        if (typeof area === 'string') {
-          return { label: area, value: area };
-        } else {
-          return { label: area.nombreArea, value: area._id };
-        }
-      });
+      const areasUnicas = await movimientoService.obtenerAreasUnicas();
+      const formattedAreas = areasUnicas.map((area: string) => ({ label: area, value: area }));
       setAreas(formattedAreas);
     } catch (error) {
       console.error('Error cargando áreas:', error);
@@ -50,76 +44,61 @@ export default function MovimientoForm() {
     cargarAreas();
   }, []);
 
-  const buscarProducto = async (codigo: string) => {
-    try {
-      const response = await api.get(`/gt/listarProducto/${codigo}`);
-      return response.data.producto;
-    } catch (error: any) {
-      Alert.alert('Error', error.msg || 'No se pudo encontrar el producto');
-      return null;
-    }
-  };
-
-  const buscarAccesorio = async (codigo: string) => {
-    try {
-      const response = await api.get(`/gt/listarAccesorio/${codigo}`);
-      return response.data.accesorio;
-    } catch (error: any) {
-      Alert.alert('Error', error.msg || 'No se pudo encontrar el accesorio');
-      return null;
-    }
-  };
-
   const handleCodigoEscaneado = async (codigo: string) => {
-    if (tipoEscaner === 'producto') {
-      const producto = await buscarProducto(codigo);
-      if (producto) {
-        if (productos.some(p => p.codigoBarras === producto.codigoBarras)) {
-          Alert.alert('Error', 'Este producto ya ha sido agregado');
-          return;
+    setLoading(true);
+    try {
+      if (tipoEscaner === 'producto') {
+        const producto = await stockService.buscarProductoPorCodigo(codigo);
+        if (producto) {
+          if (productos.some(p => p.codigoBarras === producto.codigoBarras)) {
+            Alert.alert('Atención', 'Este producto ya ha sido agregado.');
+          } else {
+            setProductos([...productos, producto]);
+          }
         }
-        setProductos([...productos, producto]);
-      }
-    } else {
-      const accesorio = await buscarAccesorio(codigo);
-      if (accesorio) {
-        if (accesorios.some(a => a.codigoBarrasAccs === accesorio.codigoBarrasAccs)) {
-          Alert.alert('Error', 'Este accesorio ya ha sido agregado');
-          return;
+      } else {
+        const accesorio = await stockService.buscarAccesorioPorCodigo(codigo);
+        if (accesorio) {
+          if (accesorios.some(a => a.codigoBarrasAccs === accesorio.codigoBarrasAccs)) {
+            Alert.alert('Atención', 'Este accesorio ya ha sido agregado.');
+          } else {
+            setAccesorios([...accesorios, accesorio]);
+          }
         }
-        setAccesorios([...accesorios, accesorio]);
       }
+    } catch (error: any) {
+      Alert.alert('Error', error.msg || `No se pudo encontrar el ${tipoEscaner}`);
+    } finally {
+      setLoading(false);
+      setMostrarEscaner(false);
     }
-    setMostrarEscaner(false);
   };
 
   const handleSubmit = async () => {
     if (!areaLlegada || !observacion) {
-      Alert.alert('Error', 'Por favor complete todos los campos requeridos');
+      Alert.alert('Campos Incompletos', 'Por favor, seleccione el área de llegada y añada una observación.');
       return;
     }
-
     if (productos.length === 0 && accesorios.length === 0) {
-      Alert.alert('Error', 'Debe agregar al menos un producto o accesorio');
+      Alert.alert('Sin Items', 'Debe agregar al menos un producto o accesorio al movimiento.');
       return;
     }
 
     setLoading(true);
     try {
-      await api.post('/gt/registrarMovimiento', {
+      await movimientoService.registrarMovimiento({
         productos: productos.map(p => ({ codigoBarras: p.codigoBarras })),
         accesorios: accesorios.map(a => ({ codigoBarrasAccs: a.codigoBarrasAccs })),
         areaLlegada,
-        observacion
+        observacion,
       });
-
-      Alert.alert('Éxito', 'Movimiento registrado correctamente');
+      Alert.alert('Éxito', 'Movimiento registrado correctamente.');
       setProductos([]);
       setAccesorios([]);
       setAreaLlegada('');
       setObservacion('');
     } catch (error: any) {
-      Alert.alert('Error', error.msg || 'Error al registrar el movimiento');
+      Alert.alert('Error', error.msg || 'No se pudo registrar el movimiento.');
     } finally {
       setLoading(false);
     }
@@ -134,107 +113,80 @@ export default function MovimientoForm() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Card style={styles.section}>
-        <Card.Title title="Dispositivos" />
-        <Card.Content>
-          {productos.map((producto, index) => (
-            <View key={index} style={[styles.item, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-              <View>
-                <Text>Código: {producto.codigoBarras}</Text>
-                <Text>Nombre: {producto.nombreEquipo}</Text>
-                <Text>Capacidad: {producto.capacidad}</Text>
-                <Text>Color: {producto.color}</Text>
-                <Text>Serial: {producto.codigoSerial}</Text>
-              </View>
-              <TouchableOpacity onPress={() => borrarProducto(index)}>
-                <MaterialIcons name="delete" size={24} color="red" />
-              </TouchableOpacity>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      {/* SECCIÓN DISPOSITIVOS */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Dispositivos</Text>
+        {productos.map((producto, index) => (
+          <View key={index} style={styles.itemContainer}>
+            <View style={styles.itemDetails}>
+              <Text style={styles.itemText}><Text style={styles.itemLabel}>Nombre:</Text> {producto.nombreEquipo}</Text>
+              <Text style={styles.itemText}><Text style={styles.itemLabel}>Capacidad:</Text> {producto.capacidad}</Text>
+              <Text style={styles.itemText}><Text style={styles.itemLabel}>Código:</Text> {producto.codigoBarras}</Text>
             </View>
-          ))}
-          <Button
-            mode="contained"
-            onPress={() => {
-              setTipoEscaner('producto');
-              setMostrarEscaner(true);
-            }}
-            style={styles.button}
-          >
-            Agregar Dispositivo
-          </Button>
-        </Card.Content>
-      </Card>
+            <TouchableOpacity onPress={() => borrarProducto(index)}>
+              <MaterialIcons name="delete-outline" size={24} color={Colors.light.text} />
+            </TouchableOpacity>
+          </View>
+        ))}
+        <TouchableOpacity style={styles.button} onPress={() => { setTipoEscaner('producto'); setMostrarEscaner(true); }}>
+          <Text style={styles.buttonText}>Agregar Dispositivo</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Card style={styles.section}>
-        <Card.Title title="Accesorios" />
-        <Card.Content>
-          {accesorios.map((accesorio, index) => (
-            <View key={index} style={[styles.item, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-              <View>
-                <Text>Código: {accesorio.codigoBarrasAccs}</Text>
-                <Text>Nombre: {accesorio.nombreAccs}</Text>
-              </View>
-              <TouchableOpacity onPress={() => borrarAccesorio(index)}>
-                <MaterialIcons name="delete" size={24} color="red" />
-              </TouchableOpacity>
+      {/* SECCIÓN ACCESORIOS */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Accesorios</Text>
+        {accesorios.map((accesorio, index) => (
+          <View key={index} style={styles.itemContainer}>
+            <View style={styles.itemDetails}>
+              <Text style={styles.itemText}><Text style={styles.itemLabel}>Nombre:</Text> {accesorio.nombreAccs}</Text>
+              <Text style={styles.itemText}><Text style={styles.itemLabel}>Código:</Text> {accesorio.codigoBarrasAccs}</Text>
             </View>
-          ))}
-          <Button
-            mode="contained"
-            onPress={() => {
-              setTipoEscaner('accesorio');
-              setMostrarEscaner(true);
-            }}
-            style={styles.button}
-          >
-            Agregar Accesorio
-          </Button>
-        </Card.Content>
-      </Card>
+            <TouchableOpacity onPress={() => borrarAccesorio(index)}>
+              <MaterialIcons name="delete-outline" size={24} color={Colors.light.text} />
+            </TouchableOpacity>
+          </View>
+        ))}
+        <TouchableOpacity style={styles.button} onPress={() => { setTipoEscaner('accesorio'); setMostrarEscaner(true); }}>
+          <Text style={styles.buttonText}>Agregar Accesorio</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Card style={styles.section}>
-        <Card.Title title="Detalles del Movimiento" />
-        <Card.Content>
-          <SimpleSelector
-            label="Área de Llegada"
-            options={areas}
-            value={areaLlegada}
-            onChange={setAreaLlegada}
-            placeholder="Seleccione el área de llegada"
-          />
+      {/* SECCIÓN DETALLES DEL MOVIMIENTO */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Detalles del Movimiento</Text>
+        <SimpleSelector
+          label="Área de Llegada"
+          options={areas}
+          value={areaLlegada}
+          onChange={setAreaLlegada}
+          placeholder="Seleccione el área de llegada"
+        />
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Observación</Text>
           <TextInput
-            label="Observación"
             value={observacion}
             onChangeText={setObservacion}
             multiline
-            numberOfLines={3}
-            style={styles.input}
-          />
-          <Button
-            mode="contained"
-            onPress={handleSubmit}
-            style={styles.button}
-            loading={loading}
-            disabled={loading}
-          >
-            Guardar Movimiento
-          </Button>
-        </Card.Content>
-      </Card>
-
-      {mostrarEscaner && (
-        <View style={{
-          position: 'absolute',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: '#000',
-          zIndex: 999,
-        }}>
-          <EscanerCodigoBarras
-            onCodigoEscaneado={handleCodigoEscaneado}
-            onCerrar={() => setMostrarEscaner(false)}
+            numberOfLines={4}
+            style={styles.textInput}
+            placeholder="Escriba aquí la observación..."
+            placeholderTextColor={Colors.light.placeholder}
           />
         </View>
-      )}
+        <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+          {loading ? <ActivityIndicator color={Colors.dark.text} /> : <Text style={styles.buttonText}>Guardar Movimiento</Text>}
+        </TouchableOpacity>
+      </View>
+
+      {/* MODAL DE ESCANER */}
+      <Modal visible={mostrarEscaner} transparent={false} animationType="slide">
+        <EscanerCodigoBarras
+          onCodigoEscaneado={handleCodigoEscaneado}
+          onCerrar={() => setMostrarEscaner(false)}
+        />
+      </Modal>
     </ScrollView>
   );
 }
@@ -242,20 +194,74 @@ export default function MovimientoForm() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  contentContainer: {
     padding: 16,
   },
-  section: {
+  card: {
+    backgroundColor: Colors.light.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.light.text,
     marginBottom: 16,
   },
-  item: {
-    padding: 8,
+  itemContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    borderBottomColor: Colors.light.border,
+    marginBottom: 8,
   },
-  input: {
-    marginBottom: 12,
+  itemDetails: {
+    flex: 1,
+  },
+  itemText: {
+    color: Colors.light.text,
+    fontSize: 14,
+  },
+  itemLabel: {
+    fontWeight: 'bold',
   },
   button: {
-    marginTop: 8,
+    backgroundColor: Colors.light.button,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  buttonText: {
+    color: Colors.light.buttonText,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  inputContainer: {
+    marginTop: 10,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.light.text,
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: Colors.light.text,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
 }); 

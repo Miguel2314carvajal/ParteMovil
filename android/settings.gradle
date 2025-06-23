@@ -21,7 +21,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
   }
 }
 
-rootProject.name = 'bodega-app'
+rootProject.name = 'Bodega App'
 
 dependencyResolutionManagement {
   versionCatalogs {

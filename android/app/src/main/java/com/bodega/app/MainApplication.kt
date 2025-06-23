@@ -1,4 +1,4 @@
-package com.bodegaapp
+package com.bodega.app
 
 import android.app.Application
 import android.content.res.Configuration

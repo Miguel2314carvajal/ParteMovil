@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { categoriaService } from '../services/api';
+import { Colors } from '@/constants/Colors';
 
 interface Categoria {
   _id: string;
@@ -44,13 +45,14 @@ export default function CategoriaSelector({ value, onChange }: CategoriaSelector
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.pickerContainer}>
       <Picker
         selectedValue={value}
         onValueChange={onChange}
         style={styles.picker}
+        itemStyle={styles.pickerItem}
       >
-        <Picker.Item label="Seleccione una categoría" value="" />
+        <Picker.Item label="Seleccionar" value="" />
         {categorias
           .filter((cat: Categoria) => cat.nombreCategoria !== 'Accesorio')
           .map((categoria) => (
@@ -66,17 +68,22 @@ export default function CategoriaSelector({ value, onChange }: CategoriaSelector
 }
 
 const styles = StyleSheet.create({
-  container: {
+  pickerContainer: {
+    backgroundColor: Colors.light.card,
+    borderRadius: 12,
+    height: 44,
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginBottom: 16,
+    borderColor: Colors.light.border,
   },
   picker: {
-    height: 50,
+    color: Colors.light.text,
+  },
+  pickerItem: {
+    fontSize: 14,
   },
   errorText: {
     color: 'red',
-    marginBottom: 16,
+    textAlign: 'center',
   },
 });

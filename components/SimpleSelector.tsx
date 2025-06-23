@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Colors } from '@/constants/Colors';
 
 interface Option {
   label: string;
@@ -69,27 +70,27 @@ const SimpleSelector: React.FC<SimpleSelectorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   label: {
     fontSize: 16,
-    marginBottom: 4,
-    color: '#333',
+    marginBottom: 6,
+    color: Colors.light.text,
     fontWeight: 'bold',
   },
   selector: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    padding: 10,
-    backgroundColor: '#fff',
+    borderColor: Colors.light.border,
+    borderRadius: 10,
+    padding: 12,
+    backgroundColor: Colors.light.inputBackground,
   },
   selectedText: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: Colors.light.text,
   },
   modalOverlay: {
     flex: 1,
@@ -98,28 +99,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: Colors.light.card,
+    borderRadius: 16,
+    padding: 20,
     width: '80%',
     maxHeight: '60%',
   },
   optionItem: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: Colors.light.divider,
   },
   optionText: {
     fontSize: 16,
-    color: '#333',
+    color: Colors.light.text,
   },
    closeButton: {
-    marginTop: 12,
-    padding: 10,
+    marginTop: 16,
+    padding: 12,
     alignSelf: 'center',
+    backgroundColor: Colors.light.button,
+    borderRadius: 8,
   },
   closeButtonText: {
-    color: '#007AFF',
+    color: Colors.light.buttonText,
     fontSize: 16,
     fontWeight: 'bold',
   }

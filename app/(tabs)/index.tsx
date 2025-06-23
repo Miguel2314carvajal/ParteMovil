@@ -5,11 +5,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
+import { Colors } from '@/constants/Colors';
 
 interface MenuCardProps {
   icon: keyof typeof MaterialIcons.glyphMap;
@@ -28,22 +30,28 @@ export default function HomeScreen() {
   };
 
   const MenuCard = ({ icon, title, route }: MenuCardProps) => (
-    <TouchableOpacity 
-      style={styles.card} 
+    <TouchableOpacity
+      style={styles.card}
       onPress={() => {
         router.push(route as any);
       }}>
-      <MaterialIcons name={icon} size={40} color="#007AFF" />
+      <View style={styles.iconContainer}>
+        <MaterialIcons name={icon} size={36} color={Colors.light.accent} />
+      </View>
       <Text style={styles.cardText}>{title}</Text>
     </TouchableOpacity>
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingTop: insets.top }}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.logoContainer}>
-          <MaterialIcons name="inventory" size={32} color="#007AFF" />
+          <Image source={require('../../assets/images/logo.png')} style={styles.logo} />
           <Text style={styles.logoText}>BodegaApp</Text>
         </View>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -65,7 +73,7 @@ export default function HomeScreen() {
           route="/(tabs)/nuevo-producto"
         />
         <MenuCard
-          icon="search"
+          icon="archive"
           title="Stock Disponible"
           route="/(tabs)/productos"
         />
@@ -87,79 +95,92 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.light.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: '#fff',
+    paddingBottom: 15,
+    backgroundColor: Colors.light.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: Colors.light.border,
   },
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  logo: {
+    width: 35,
+    height: 35,
+    resizeMode: 'contain',
+  },
   logoText: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginLeft: 8,
+    marginLeft: 10,
+    color: Colors.light.text,
   },
   logoutButton: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: Colors.light.chip,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
   logoutText: {
-    color: '#007AFF',
+    color: Colors.light.chipText,
     fontSize: 14,
     fontWeight: '500',
   },
   greetingContainer: {
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
   greeting: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: 8,
+    color: Colors.light.text,
   },
   subGreeting: {
     fontSize: 18,
-    color: '#666',
+    color: Colors.light.placeholder,
   },
   menuGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 10,
+    paddingHorizontal: 16,
     justifyContent: 'space-between',
   },
   card: {
-    backgroundColor: '#fff',
-    width: '47%',
+    backgroundColor: Colors.light.card,
+    width: '48%',
     aspectRatio: 1,
-    borderRadius: 20,
-    padding: 40,
-    marginBottom: 20,
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  iconContainer: {
+    // No longer using flex: 1 to allow natural centering
   },
   cardText: {
-    marginTop: 12,
+    marginTop: 15,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     textAlign: 'center',
-    color: '#333',
+    color: Colors.light.text,
+    // Removed fixed height to allow natural text wrapping
   },
 });

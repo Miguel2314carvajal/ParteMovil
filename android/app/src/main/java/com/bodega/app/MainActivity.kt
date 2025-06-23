@@ -1,4 +1,4 @@
-package com.bodegaapp
+package com.bodega.app
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { Colors } from '@/constants/Colors';
 
 interface CapacidadSelectorProps {
   value: string;
@@ -57,10 +58,10 @@ export default function CapacidadSelector({ value, onChange, categoria }: Capaci
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: Colors.light.card,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: Colors.light.border,
   },
   picker: {
     height: 50,

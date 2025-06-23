@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Colors } from '@/constants/Colors';
 
 interface TipoProductoSelectorProps {
   tipoSeleccionado: 'dispositivos' | 'accesorios' | null;
@@ -19,8 +20,8 @@ export default function TipoProductoSelector({ tipoSeleccionado, onSelect }: Tip
       >
         <MaterialIcons
           name="devices"
-          size={24}
-          color={tipoSeleccionado === 'dispositivos' ? '#007AFF' : '#666'}
+          size={20}
+          color={tipoSeleccionado === 'dispositivos' ? Colors.light.buttonText : Colors.light.text}
         />
         <Text
           style={[
@@ -41,8 +42,8 @@ export default function TipoProductoSelector({ tipoSeleccionado, onSelect }: Tip
       >
         <MaterialIcons
           name="headset"
-          size={24}
-          color={tipoSeleccionado === 'accesorios' ? '#007AFF' : '#666'}
+          size={20}
+          color={tipoSeleccionado === 'accesorios' ? Colors.light.buttonText : Colors.light.text}
         />
         <Text
           style={[
@@ -60,31 +61,29 @@ export default function TipoProductoSelector({ tipoSeleccionado, onSelect }: Tip
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 20,
-    padding: 8,
-    justifyContent: 'space-around',
+    backgroundColor: Colors.light.card,
+    borderRadius: 30,
+    marginBottom: 24,
+    padding: 6,
   },
   option: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 8,
-    flex: 1,
-    marginHorizontal: 4,
     justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 25,
   },
   selected: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: Colors.light.button,
   },
   optionText: {
-    marginLeft: 12,
+    marginLeft: 8,
     fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
+    fontWeight: '600',
+    color: Colors.light.text,
   },
   selectedText: {
-    color: '#007AFF',
+    color: Colors.light.buttonText,
   },
 }); 
