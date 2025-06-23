@@ -159,7 +159,7 @@ export default function MisAccesoriosScreen() {
       <Text style={[styles.cell, { flex: 4 }]}>{item.nombreAccs}</Text>
       <Text style={[styles.cell, { flex: 1.5, textAlign: 'center' }]}>1</Text>
       <TouchableOpacity style={{ flex: 1.5, alignItems: 'center'}} onPress={() => handleVerDetalle(item)}>
-        <MaterialIcons name="visibility" size={22} color={Colors.light.text} />
+        <MaterialIcons name="visibility" size={22} color={'#000'} />
       </TouchableOpacity>
     </View>
   );
@@ -217,7 +217,7 @@ export default function MisAccesoriosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingTop: 16,
   },
@@ -235,13 +235,18 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.card,
+    backgroundColor: '#F5F5F0',
     borderWidth: 1,
     borderColor: Colors.light.border,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginRight: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 2,
   },
   datePickerText: {
     color: Colors.light.text,
@@ -250,27 +255,37 @@ const styles = StyleSheet.create({
   },
   exportButton: {
     flexDirection: 'row',
-    backgroundColor: Colors.light.button,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    backgroundColor: '#000',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonText: {
-    color: Colors.light.buttonText,
+    color: '#fff',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 15,
     marginLeft: 8,
   },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: Colors.light.card,
+    backgroundColor: '#F5F5F0',
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
   headerCell: {
     fontWeight: 'bold',
@@ -281,9 +296,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 12,
     borderBottomWidth: 1,
-    borderColor: Colors.light.divider,
-    backgroundColor: Colors.light.card,
+    borderColor: '#D9D9D9',
+    backgroundColor: '#F5F5F0',
     alignItems: 'center',
+    borderRadius: 8,
+    marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 1,
+    elevation: 1,
   },
   cell: {
     color: Colors.light.text,
@@ -295,6 +317,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.placeholder,
     padding: 16,
-    backgroundColor: Colors.light.card,
+    backgroundColor: '#fff',
+    borderRadius: 10,
   },
 }); 
