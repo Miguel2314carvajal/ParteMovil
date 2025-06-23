@@ -20,15 +20,17 @@
       "bundleIdentifier": "com.bodegaapp",
       "infoPlist": {
         "NSCameraUsageDescription": "Esta aplicación necesita acceso a la cámara para escanear códigos de barras."
-      }
+      },
+      "icon": "./assets/images/logo.png"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/logo.png",
+        "backgroundColor": "#fff"
       },
       "package": "com.bodegaapp",
-      "permissions": ["CAMERA"]
+      "permissions": ["CAMERA"],
+      "icon": "./assets/images/logo.png"
     },
     "web": {
       "bundler": "metro",

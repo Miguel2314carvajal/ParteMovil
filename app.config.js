@@ -4,7 +4,7 @@ export default {
     slug: "bodega-app",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/logo.png",
     scheme: "myapp",
     userInterfaceStyle: "automatic",
     splash: {
@@ -21,8 +21,8 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff"
+        foregroundImage: "./assets/images/logo.png",
+        backgroundColor: "#fff"
       },
       package: "com.bodega.app"
     },

@@ -105,7 +105,7 @@ export default function LoginScreen() {
                 style={styles.eyeIcon}
               >
                 <MaterialIcons 
-                  name={isPasswordVisible ? 'visibility-off' : 'visibility'} 
+                  name={isPasswordVisible ? 'visibility' : 'visibility-off'}
                   size={24} 
                   color={Colors.light.placeholder} 
                 />

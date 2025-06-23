@@ -30,8 +30,8 @@ export default function HomeScreen() {
   };
 
   const MenuCard = ({ icon, title, route }: MenuCardProps) => (
-    <TouchableOpacity
-      style={styles.card}
+    <TouchableOpacity 
+      style={styles.card} 
       onPress={() => {
         router.push(route as any);
       }}>
@@ -123,13 +123,20 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
   logoutButton: {
-    backgroundColor: Colors.light.chip,
+    backgroundColor: '#F5F5F0',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 2,
   },
   logoutText: {
-    color: Colors.light.chipText,
+    color: '#000',
     fontSize: 14,
     fontWeight: '500',
   },

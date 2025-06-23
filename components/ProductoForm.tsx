@@ -386,7 +386,7 @@ export default function ProductoForm() {
         }
       }
     } catch (error) {
-       Alert.alert('Error', 'No se pudieron cargar los datos para visualizar');
+      Alert.alert('Error', 'No se pudieron cargar los datos para visualizar');
     }
   };
 
