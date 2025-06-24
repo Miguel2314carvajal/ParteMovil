@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: '#F5F5F0',
+    backgroundColor: Colors.light.card,
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 1,
     borderColor: '#D9D9D9',
-    backgroundColor: '#F5F5F0',
+    backgroundColor: Colors.light.card,
     alignItems: 'center',
     borderRadius: 8,
     marginBottom: 4,
