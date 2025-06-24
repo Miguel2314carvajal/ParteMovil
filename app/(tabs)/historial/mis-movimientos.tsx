@@ -277,35 +277,20 @@ export default function MisMovimientosScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.controlsHeader}>
-        <View style={styles.filtrosContainer}>
-            <TouchableOpacity
-              style={styles.dateInput}
-              onPress={() => setShowPicker('desde')}
-            >
-              <MaterialIcons name="calendar-today" size={18} color={Colors.dark.text} style={{marginRight: 5}}/>
-              <Text style={styles.datePickerText}>
-                {fechaDesde ? fechaDesde.toLocaleDateString('es-ES') : 'Desde'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dateInput}
-              onPress={() => setShowPicker('hasta')}
-            >
-              <MaterialIcons name="calendar-today" size={18} color={Colors.dark.text} style={{marginRight: 5}}/>
-              <Text style={styles.datePickerText}>
-                {fechaHasta ? fechaHasta.toLocaleDateString('es-ES') : 'Hasta'}
-              </Text>
-            </TouchableOpacity>
+      <View style={styles.controlsContainer}>
+        <View style={styles.dateFiltersContainer}>
+          <TouchableOpacity style={styles.datePickerInput} onPress={() => setShowPicker('desde')}>
+            <MaterialIcons name="date-range" size={20} color={Colors.light.text} />
+            <Text style={styles.datePickerText}>{fechaDesde ? fechaDesde.toLocaleDateString() : 'Desde'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.datePickerInput} onPress={() => setShowPicker('hasta')}>
+            <MaterialIcons name="date-range" size={20} color={Colors.light.text} />
+            <Text style={styles.datePickerText}>{fechaHasta ? fechaHasta.toLocaleDateString() : 'Hasta'}</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.exportButton}
-          onPress={exportarPDF}
-          disabled={loading}
-        >
-          <MaterialIcons name="picture-as-pdf" size={20} color="#fff" />
-          <Text style={styles.exportButtonText}>Exportar</Text>
+        <TouchableOpacity style={styles.exportButton} onPress={exportarPDF} disabled={loading}>
+          <MaterialIcons name="picture-as-pdf" size={20} color={Colors.light.buttonText} />
+          <Text style={styles.buttonText}>Exportar</Text>
         </TouchableOpacity>
       </View>
 
@@ -379,51 +364,61 @@ export default function MisMovimientosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5', // Fondo general más claro
+    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-  controlsHeader: {
+  controlsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  filtrosContainer: {
+  dateFiltersContainer: {
     flexDirection: 'row',
     flex: 1,
-    marginRight: 10,
   },
-  dateInput: {
+  datePickerInput: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.light.card,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
+    borderColor: Colors.light.border,
+    borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginRight: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 2,
   },
   datePickerText: {
-    color: '#000',
+    color: Colors.light.text,
+    marginLeft: 8,
     fontSize: 14,
   },
   exportButton: {
     flexDirection: 'row',
-    backgroundColor: '#000000',
+    backgroundColor: '#000',
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: 20,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  exportButtonText: {
+  buttonText: {
     color: '#fff',
     fontWeight: 'bold',
-    marginLeft: 6,
-    fontSize: 14,
+    fontSize: 15,
+    marginLeft: 8,
   },
   listContainer: {
     paddingBottom: 20,
@@ -520,7 +515,4 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-  buttonText:{
-    fontWeight: 'bold',
-  }
 }); 

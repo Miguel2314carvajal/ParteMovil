@@ -250,7 +250,7 @@ export default function ProductoForm() {
       }
     } catch (error: any) {
       console.error('Error completo:', error);
-      Alert.alert('Error', error.msg || 'No se pudo registrar el producto');
+      Alert.alert('Error', error.msg || 'El código de serial ya existe. Por favor, verifica e intenta con otro.');
     }
   };
 
